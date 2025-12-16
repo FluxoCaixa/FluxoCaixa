@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: js/modules/profile.js
- * DESCRIÇÃO: Gerencia Perfil, Grupos Familiares e Convites.
+ * DESCRIÇÃO: Gerencia Perfil, Grupos Familiares e Convites (VERSÃO SEGURA).
  */
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, collection, 
@@ -10,23 +10,32 @@ import { db } from '../config.js';
 import { showToast } from '../utils.js';
 
 let currentUser = null;
-let currentContextCallback = null; // Função para chamar no app.js quando trocar de conta
+let currentContextCallback = null;
 
 export function initProfile(user, onContextChange) {
     currentUser = user;
     currentContextCallback = onContextChange;
 
-    // Preenche dados visuais
-    document.getElementById('profile-name').innerText = user.displayName || "Usuário";
-    document.getElementById('profile-email').innerText = user.email;
-    document.getElementById('profile-pic').src = user.photoURL || "https://ui-avatars.com/api/?name=" + (user.displayName || "User");
+    // --- PROTEÇÃO CONTRA ERRO DE HTML ---
+    const elName = document.getElementById('profile-name');
+    const elEmail = document.getElementById('profile-email');
+    const elPic = document.getElementById('profile-pic');
+    const btnInvite = document.getElementById('btn-send-invite');
 
-    // Listeners
+    // Só preenche se o HTML existir (evita o erro "Cannot set properties of null")
+    if (elName) elName.innerText = user.displayName || "Usuário";
+    if (elEmail) elEmail.innerText = user.email;
+    if (elPic) elPic.src = user.photoURL || "https://ui-avatars.com/api/?name=" + (user.displayName || "User");
+
+    // Listeners (só ativa se o HTML estiver carregado)
     setupInviteSystem();
     loadUserGroups();
     
-    // Botão de Enviar Convite
-    document.getElementById('btn-send-invite').addEventListener('click', sendInvite);
+    if (btnInvite) {
+        btnInvite.addEventListener('click', sendInvite);
+    } else {
+        console.warn("Aviso: Botão de convite não encontrado no HTML.");
+    }
 }
 
 // =========================================================
@@ -34,27 +43,30 @@ export function initProfile(user, onContextChange) {
 // =========================================================
 
 async function loadUserGroups() {
-    // Escuta o perfil do usuário para ver em quais grupos ele está
+    if (!currentUser) return;
     const userRef = doc(db, "users_profile", currentUser.uid);
     
     onSnapshot(userRef, (snap) => {
         const data = snap.data() || {};
-        const groups = data.groups || []; // Array de IDs de grupos
-        
+        const groups = data.groups || []; 
         renderContextSwitcher(groups);
+    }, (error) => {
+        console.log("Perfil ainda não criado, usando padrão.");
+        renderContextSwitcher([]);
     });
 }
 
 function renderContextSwitcher(groupIds) {
     const container = document.getElementById('context-switcher');
+    if (!container) return; // Proteção
+
     container.innerHTML = '';
 
-    // 1. Opção Pessoal (Sempre existe)
+    // 1. Opção Pessoal
     createContextButton(container, "Meu Plano Individual", "personal", `users/${currentUser.uid}/transactions`);
 
-    // 2. Opções de Família (Grupos)
+    // 2. Opções de Família
     groupIds.forEach(async (groupId) => {
-        // Busca nome do grupo
         const groupRef = doc(db, "groups", groupId);
         const groupSnap = await getDoc(groupRef);
         
@@ -68,9 +80,8 @@ function renderContextSwitcher(groupIds) {
 
 function createContextButton(container, label, id, path) {
     const btn = document.createElement('button');
-    btn.className = "w-full text-left px-4 py-3 rounded-lg border border-slate-600 bg-slate-800 hover:bg-slate-700 transition flex items-center justify-between group focus:ring-2 focus:ring-emerald-500";
+    btn.className = "w-full text-left px-4 py-3 rounded-lg border border-slate-600 bg-slate-800 hover:bg-slate-700 transition flex items-center justify-between group focus:ring-2 focus:ring-emerald-500 mb-2";
     
-    // Marca visualmente qual está ativo (lógica simples baseada no localStorage ou estado atual)
     const currentPath = localStorage.getItem('last_context_path');
     if (path === currentPath) {
         btn.classList.add('border-emerald-500', 'bg-slate-700');
@@ -80,16 +91,10 @@ function createContextButton(container, label, id, path) {
     }
 
     btn.onclick = () => {
-        // Salva preferência
         localStorage.setItem('last_context_path', path);
-        
-        // Atualiza UI
-        renderContextSwitcher([]); // Limpa pra recriar com o novo ativo visualmente (hack rápido)
-        loadUserGroups(); // Recarrega
-        
-        // CHAMA O APP.JS PARA TROCAR O BANCO DE DADOS
+        renderContextSwitcher([]); 
+        loadUserGroups();
         if (currentContextCallback) currentContextCallback(path);
-        
         showToast(`Trocado para: ${label}`);
     };
 
@@ -102,19 +107,19 @@ function createContextButton(container, label, id, path) {
 
 async function sendInvite() {
     const emailInput = document.getElementById('invite-email');
+    if (!emailInput) return;
+    
     const email = emailInput.value.trim().toLowerCase();
 
     if (!email) return showToast("Digite um e-mail.", "info");
     if (email === currentUser.email) return showToast("Você não pode se convidar.", "info");
 
     try {
-        // 1. Garante que o usuário tem um "Grupo Próprio" criado
         const myGroupId = await ensureMyGroupExists();
 
-        // 2. Cria o convite na coleção 'invites'
         await addDoc(collection(db, "invites"), {
             fromUid: currentUser.uid,
-            fromName: currentUser.displayName,
+            fromName: currentUser.displayName || "Alguém",
             fromEmail: currentUser.email,
             toEmail: email,
             targetGroupId: myGroupId,
@@ -131,13 +136,10 @@ async function sendInvite() {
 }
 
 async function ensureMyGroupExists() {
-    // Verifica se já criei um grupo onde sou dono
-    // Para simplificar, vamos usar o ID do usuário como ID do grupo principal dele ou criar um doc
     const groupRef = doc(db, "groups", currentUser.uid + "_family");
     const groupSnap = await getDoc(groupRef);
 
     if (!groupSnap.exists()) {
-        // Cria o grupo pela primeira vez
         await setDoc(groupRef, {
             name: "Família de " + (currentUser.displayName || "Usuário"),
             owner: currentUser.uid,
@@ -145,11 +147,9 @@ async function ensureMyGroupExists() {
             createdAt: serverTimestamp()
         });
         
-        // Adiciona este grupo ao meu perfil
         await updateDoc(doc(db, "users_profile", currentUser.uid), {
             groups: arrayUnion(currentUser.uid + "_family")
         }).catch(async () => {
-            // Se o perfil não existe, cria
             await setDoc(doc(db, "users_profile", currentUser.uid), {
                 groups: [currentUser.uid + "_family"]
             });
@@ -159,12 +159,14 @@ async function ensureMyGroupExists() {
 }
 
 function setupInviteSystem() {
-    // Escuta convites onde o e-mail de destino é o meu
     const q = query(collection(db, "invites"), where("toEmail", "==", currentUser.email), where("status", "==", "pending"));
     
     onSnapshot(q, (snap) => {
         const list = document.getElementById('invites-list');
         const area = document.getElementById('pending-invites-area');
+        
+        if (!list || !area) return; // Proteção
+
         list.innerHTML = '';
 
         if (snap.empty) {
@@ -194,26 +196,20 @@ function setupInviteSystem() {
 
 async function acceptInvite(inviteId, groupId) {
     try {
-        // 1. Adiciona o usuário ao grupo
         const groupRef = doc(db, "groups", groupId);
-        await updateDoc(groupRef, {
-            members: arrayUnion(currentUser.uid)
-        });
+        await updateDoc(groupRef, { members: arrayUnion(currentUser.uid) });
 
-        // 2. Adiciona o grupo ao perfil do usuário
         const userProfileRef = doc(db, "users_profile", currentUser.uid);
-        // Tenta atualizar, se não existir cria
         try {
             await updateDoc(userProfileRef, { groups: arrayUnion(groupId) });
         } catch (e) {
             await setDoc(userProfileRef, { groups: [groupId] });
         }
 
-        // 3. Marca convite como aceito
         await updateDoc(doc(db, "invites", inviteId), { status: 'accepted' });
 
-        showToast("Você entrou no grupo! Selecione-o no perfil.");
-        loadUserGroups(); // Atualiza a lista
+        showToast("Você entrou no grupo!");
+        loadUserGroups();
     } catch (e) {
         console.error(e);
         showToast("Erro ao aceitar.", "error");
