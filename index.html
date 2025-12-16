@@ -54,23 +54,28 @@
                     <svg class="w-6 h-6 flex-shrink-0 group-hover/link:text-cyan-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Lançamentos</span>
                 </a>
+
+                <a href="#" data-page="perfil" class="nav-link flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white group/link">
+                    <svg class="w-6 h-6 flex-shrink-0 group-hover/link:text-amber-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Meu Perfil</span>
+                </a>
             </nav>
 
             <div class="p-4 border-t border-slate-800 space-y-2 shrink-0">
-                <button id="btn-open-login" class="flex items-center gap-3 w-full p-2 hover:bg-slate-800 rounded-lg transition group/login">
-                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 group-hover/login:bg-slate-600 transition ring-1 ring-slate-600">ID</div>
-                    <div class="md:hidden md:group-hover:block overflow-hidden text-left md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
-                        <p class="text-xs font-bold text-white truncate" id="user-role-label">Entrar</p>
-                        <p class="text-[10px] text-slate-500 truncate" id="userIdDisplay">Anônimo</p>
-                    </div>
-                </button>
-
                 <button id="btn-privacy-toggle" class="flex items-center gap-3 w-full p-2 hover:bg-slate-800 rounded-lg transition group/privacy text-slate-400 hover:text-white">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center transition bg-slate-800 group-hover/privacy:bg-slate-700">
                         <svg id="icon-eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                         <svg id="icon-eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
                     </div>
                     <span class="text-xs font-bold md:hidden md:group-hover:block whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Ocultar Valores</span>
+                </button>
+
+                <button id="btn-open-login" class="flex items-center gap-3 w-full p-2 hover:bg-slate-800 rounded-lg transition group/login">
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 group-hover/login:bg-slate-600 transition ring-1 ring-slate-600">ID</div>
+                    <div class="md:hidden md:group-hover:block overflow-hidden text-left md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                        <p class="text-xs font-bold text-white truncate" id="user-role-label">Entrar</p>
+                        <p class="text-[10px] text-slate-500 truncate" id="userIdDisplay">Anônimo</p>
+                    </div>
                 </button>
 
                 <button id="btn-logout" class="hidden flex items-center gap-3 w-full p-2 hover:bg-rose-900/20 text-rose-400 rounded-lg transition group/logout">
@@ -131,25 +136,19 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500">
-                                <svg class="w-16 h-16 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500"><svg class="w-16 h-16 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Entradas</h3>
                             <p class="text-3xl font-bold text-emerald-400 mt-2 tracking-tight blur-sensitive" id="kpi-receitas">R$ 0,00</p>
                         </div>
 
                         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500">
-                                <svg class="w-16 h-16 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500"><svg class="w-16 h-16 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Saídas</h3>
                             <p class="text-3xl font-bold text-rose-400 mt-2 tracking-tight blur-sensitive" id="kpi-despesas">R$ 0,00</p>
                         </div>
 
                         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500">
-                                <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500"><svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo Líquido</h3>
                             <p class="text-3xl font-bold text-white mt-2 tracking-tight blur-sensitive" id="kpi-saldo">R$ 0,00</p>
                         </div>
@@ -230,6 +229,7 @@
                                 Exportar
                             </button>
                             <button id="btn-import-excel" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg font-medium shadow-lg transition flex items-center gap-2 text-sm active:scale-95">Importar</button>
+                            
                             <button id="btn-new-transaction" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-emerald-900/20 transition flex items-center gap-2 text-sm active:scale-95">Novo</button>
                         </div>
                     </header>
@@ -260,6 +260,61 @@
                         </div>
                     </div>
                 </div>
+
+                <div id="perfil" class="page-content hidden animate-fade-in">
+                    <header class="mb-6">
+                        <h1 class="text-3xl font-bold text-white tracking-tight">Meu Perfil</h1>
+                        <p class="text-slate-400 mt-1">Gerencie sua conta e grupos familiares.</p>
+                    </header>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                            <div class="flex items-center gap-4 mb-6">
+                                <img id="profile-pic" src="" alt="Avatar" class="w-16 h-16 rounded-full border-2 border-emerald-500 shadow-lg">
+                                <div>
+                                    <h2 id="profile-name" class="text-xl font-bold text-white">Carregando...</h2>
+                                    <p id="profile-email" class="text-sm text-slate-400">...</p>
+                                </div>
+                            </div>
+                            
+                            <hr class="border-slate-700 my-4">
+
+                            <h3 class="text-sm font-bold text-slate-400 uppercase mb-3">Contexto Atual</h3>
+                            <div class="flex flex-col gap-2" id="context-switcher">
+                                <p class="text-slate-500 italic text-sm">Carregando contextos...</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                Convites & Membros
+                            </h3>
+
+                            <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Adicionar pessoa ao meu grupo</label>
+                                <div class="flex gap-2">
+                                    <input type="email" id="invite-email" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="email.do.colega@gmail.com">
+                                    <button id="btn-send-invite" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded font-bold text-sm transition">Convidar</button>
+                                </div>
+                            </div>
+
+                            <div id="pending-invites-area" class="hidden mb-4">
+                                <h4 class="text-xs font-bold text-amber-400 uppercase mb-2 animate-pulse">Convites Pendentes</h4>
+                                <div id="invites-list" class="space-y-2"></div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Membros do Grupo Atual</h4>
+                                <div id="members-list" class="space-y-2 text-sm text-slate-300">
+                                    <p class="italic text-slate-600">Selecione um grupo familiar para ver os membros.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
