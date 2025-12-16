@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluxoCaixa - Gestão Financeira</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="./icon-192.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <link rel="stylesheet" href="./css/style.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Scrollbar Personalizada */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-full overflow-hidden font-inter">
+    
+    <div id="toast-container"></div>
+    
+    <div class="flex h-full flex-col md:flex-row relative">
+        
+        <div class="w-full md:w-20 md:hover:w-64 bg-slate-950 border-r border-slate-800 transition-all duration-300 group z-30 flex flex-col shadow-2xl">
+            <div class="p-4 h-[72px] flex items-center justify-center border-b border-slate-800 shrink-0">
+                <div class="bg-emerald-600 p-2 rounded-lg shadow-lg shadow-emerald-900/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="ml-3 font-bold text-xl md:hidden md:group-hover:block transition whitespace-nowrap text-white opacity-0 md:group-hover:opacity-100 duration-300">FluxoCaixa</span>
+            </div>
+
+            <nav class="flex-1 p-2 space-y-1 overflow-y-auto mt-2 custom-scrollbar">
+                <a href="#" data-page="dashboard" class="nav-link flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white group/link">
+                    <svg class="w-6 h-6 flex-shrink-0 group-hover/link:text-emerald-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Visão Geral</span>
+                </a>
+                
+                <a href="#" data-page="calendario" class="nav-link flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white group/link">
+                    <svg class="w-6 h-6 flex-shrink-0 group-hover/link:text-indigo-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Calendário</span>
+                </a>
+
+                <a href="#" data-page="lancamentos" class="nav-link flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white group/link">
+                    <svg class="w-6 h-6 flex-shrink-0 group-hover/link:text-cyan-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Lançamentos</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-slate-800 space-y-2 shrink-0">
+                <button id="btn-open-login" class="flex items-center gap-3 w-full p-2 hover:bg-slate-800 rounded-lg transition group/login">
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 group-hover/login:bg-slate-600 transition ring-1 ring-slate-600">ID</div>
+                    <div class="md:hidden md:group-hover:block overflow-hidden text-left md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                        <p class="text-xs font-bold text-white truncate" id="user-role-label">Entrar</p>
+                        <p class="text-[10px] text-slate-500 truncate" id="userIdDisplay">Anônimo</p>
+                    </div>
+                </button>
+
+                <button id="btn-privacy-toggle" class="flex items-center gap-3 w-full p-2 hover:bg-slate-800 rounded-lg transition group/privacy text-slate-400 hover:text-white">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center transition bg-slate-800 group-hover/privacy:bg-slate-700">
+                        <svg id="icon-eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <svg id="icon-eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    </div>
+                    <span class="text-xs font-bold md:hidden md:group-hover:block whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Ocultar Valores</span>
+                </button>
+
+                <button id="btn-logout" class="hidden flex items-center gap-3 w-full p-2 hover:bg-rose-900/20 text-rose-400 rounded-lg transition group/logout">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center transition hover:bg-rose-900/30">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    </div>
+                    <span class="text-xs font-bold md:hidden md:group-hover:block whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Sair</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 bg-slate-900 overflow-y-auto relative w-full custom-scrollbar" id="main-content">
+            <div class="p-4 md:p-8 pb-24 max-w-[1600px] mx-auto">
+                
+                <div id="dashboard" class="page-content active animate-fade-in">
+                    <header class="mb-6 flex flex-col xl:flex-row justify-between items-end xl:items-center gap-4">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white tracking-tight">Dashboard Financeiro</h1>
+                            <p class="text-slate-400 mt-1">Visão 360º do seu fluxo de caixa.</p>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 items-end sm:items-center w-full sm:w-auto">
+                            <div class="bg-slate-800 p-1 rounded-lg border border-slate-700 flex shadow-sm">
+                                <button id="btn-view-real" class="px-4 py-2 rounded text-xs font-bold transition bg-indigo-600 text-white shadow-lg ring-1 ring-indigo-500">REALIZADO</button>
+                                <button id="btn-view-forecast" class="px-4 py-2 rounded text-xs font-bold transition text-slate-400 hover:text-white">PREVISÃO</button>
+                            </div>
+
+                            <button id="btn-open-goals" class="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg border border-slate-600 transition shadow-sm h-[38px]" title="Definir Metas">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </button>
+
+                            <input type="month" id="dash-month-filter" class="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition [color-scheme:dark] h-[38px] shadow-sm">
+                        </div>
+                    </header>
+
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg mb-6">
+                        <div class="flex justify-between text-xs font-bold uppercase text-slate-400 mb-2">
+                            <span>Saúde do Mês</span>
+                            <span id="health-text" class="text-white">0% Comprometido</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-4 overflow-hidden relative shadow-inner">
+                            <div class="absolute top-0 left-0 h-full w-full bg-emerald-900/10"></div>
+                            <div id="health-bar" class="h-full bg-gradient-to-r from-emerald-500 to-rose-500 transition-all duration-1000 ease-out shadow-lg" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-600 mt-1 font-mono">
+                            <span>0%</span><span>50%</span><span>100%</span>
+                        </div>
+                    </div>
+
+                    <div id="goals-section" class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg mb-6 hidden">
+                        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            Acompanhamento de Metas
+                        </h3>
+                        <div id="goals-list" class="space-y-4">
+                            </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500">
+                                <svg class="w-16 h-16 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Entradas</h3>
+                            <p class="text-3xl font-bold text-emerald-400 mt-2 tracking-tight blur-sensitive" id="kpi-receitas">R$ 0,00</p>
+                        </div>
+
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500">
+                                <svg class="w-16 h-16 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Saídas</h3>
+                            <p class="text-3xl font-bold text-rose-400 mt-2 tracking-tight blur-sensitive" id="kpi-despesas">R$ 0,00</p>
+                        </div>
+
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110 duration-500">
+                                <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo Líquido</h3>
+                            <p class="text-3xl font-bold text-white mt-2 tracking-tight blur-sensitive" id="kpi-saldo">R$ 0,00</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6 mb-6">
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Fluxo de Caixa Diário</h4>
+                            <div class="h-72 relative"><canvas id="chartFlow"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Balanço Wellington</h4>
+                            <div class="h-64 relative"><canvas id="chartBalanceWellington"></canvas></div>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-pink-500"></span> Balanço Eryka</h4>
+                            <div class="h-64 relative"><canvas id="chartBalanceEryka"></canvas></div>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Destino das Despesas</h4>
+                            <div class="h-64 relative"><canvas id="chartExpenseCat"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="calendario" class="page-content hidden animate-fade-in">
+                    <header class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white tracking-tight">Calendário</h1>
+                            <p class="text-slate-400 mt-1">Fluxo diário de caixa detalhado.</p>
+                        </div>
+                        <div class="flex items-center gap-4 bg-slate-800 p-1.5 rounded-lg border border-slate-700 shadow-sm">
+                            <button id="cal-prev" class="p-2 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition active:scale-95"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+                            <h2 id="cal-title" class="text-lg font-bold text-white min-w-[180px] text-center capitalize">Carregando...</h2>
+                            <button id="cal-next" class="p-2 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition active:scale-95"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                        </div>
+                    </header>
+                    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden">
+                        <div class="grid grid-cols-7 bg-slate-950 text-slate-400 text-center text-xs font-bold uppercase py-3 border-b border-slate-700"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                        <div id="calendar-grid" class="grid grid-cols-7 bg-slate-800"></div>
+                    </div>
+                </div>
+
+                <div id="lancamentos" class="page-content hidden animate-fade-in">
+                    <header class="mb-6 flex flex-col md:flex-row justify-between items-end gap-4">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white tracking-tight">Lançamentos</h1>
+                            <p class="text-slate-400 mt-1">Gerencie todas as entradas e saídas.</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <input type="file" id="import-excel-input" class="hidden" accept=".xlsx, .xls">
+
+                            <div id="bulk-actions-group" class="hidden flex gap-2">
+                                <button id="btn-bulk-finish" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-indigo-900/20 transition flex items-center gap-2 text-sm animate-pulse">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Concluir (<span id="bulk-count">0</span>)
+                                </button>
+                                <button id="btn-bulk-delete" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-rose-900/20 transition flex items-center gap-2 text-sm animate-pulse">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Excluir
+                                </button>
+                            </div>
+
+                            <div class="w-px h-8 bg-slate-700 mx-2 hidden md:block"></div>
+
+                            <button id="btn-open-recurring" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-purple-900/20 transition flex items-center gap-2 text-sm active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                Fixas
+                            </button>
+
+                            <button id="btn-download-template" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg font-medium shadow-sm transition flex items-center gap-2 text-sm border border-slate-700 active:scale-95">Modelo</button>
+                            <button id="btn-export-excel" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg font-medium shadow-lg transition flex items-center gap-2 text-sm active:scale-95 border border-slate-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Exportar
+                            </button>
+                            <button id="btn-import-excel" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg font-medium shadow-lg transition flex items-center gap-2 text-sm active:scale-95">Importar</button>
+                            <button id="btn-new-transaction" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-emerald-900/20 transition flex items-center gap-2 text-sm active:scale-95">Novo</button>
+                        </div>
+                    </header>
+
+                    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-950 text-slate-400 font-medium uppercase text-xs">
+                                    <tr>
+                                        <th class="px-4 py-3 pb-2 w-10 text-center"><input type="checkbox" id="check-all-rows" class="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-0 cursor-pointer accent-indigo-500 bg-slate-800"></th>
+                                        <th class="px-6 py-3 pb-2 text-left cursor-pointer hover:text-white transition group sort-header select-none" data-col="date">Data <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        <th class="px-6 py-3 pb-2 text-left cursor-pointer hover:text-white transition group sort-header select-none" data-col="description">Descrição <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        <th class="px-6 py-3 pb-2 text-left cursor-pointer hover:text-white transition group sort-header select-none" data-col="category">Categoria <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        <th class="px-6 py-3 pb-2 text-right cursor-pointer hover:text-white transition group sort-header select-none" data-col="value">Valor <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        <th class="px-6 py-3 pb-2 text-right">Ações</th>
+                                    </tr>
+                                    <tr class="border-b border-slate-700 bg-slate-900/50">
+                                        <th class="px-4 py-2"></th>
+                                        <th class="px-6 py-2"><div class="relative w-full"><input type="date" id="filter-date" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case [color-scheme:dark] placeholder-slate-500"><button id="btn-clean-filter-date" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
+                                        <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-desc" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500" placeholder="Buscar..."><button id="btn-clean-filter-desc" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
+                                        <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-cat" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500" placeholder="Buscar..."><button id="btn-clean-filter-cat" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
+                                        <th class="px-6 py-2"></th>
+                                        <th class="px-6 py-2 text-right"><button id="btn-clear-filters" class="text-[10px] text-indigo-400 hover:text-white underline cursor-pointer font-normal normal-case whitespace-nowrap transition">Limpar Tudo</button></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-tbody" class="divide-y divide-slate-700 text-slate-300"><tr><td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">Carregando...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-transaction" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border border-slate-700 transform transition-all scale-100 flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2 sticky top-0 bg-slate-800 z-10 pb-2 border-b border-slate-700">
+                <div class="p-2 bg-emerald-500/10 rounded-lg"><svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+                Transação Financeira
+            </h2>
+            <form id="form-transaction" class="space-y-5">
+                <input type="hidden" id="form-id">
+                <div class="flex gap-4 p-1 bg-slate-900 rounded-lg border border-slate-700">
+                    <label class="flex-1 cursor-pointer p-2.5 rounded text-center transition hover:bg-slate-800 has-[:checked]:bg-emerald-900/30 has-[:checked]:text-emerald-400 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500/50"><input type="radio" name="tipo" value="receita" class="hidden" required><span class="font-bold text-sm uppercase">Receita</span></label>
+                    <label class="flex-1 cursor-pointer p-2.5 rounded text-center transition hover:bg-slate-800 has-[:checked]:bg-rose-900/30 has-[:checked]:text-rose-400 has-[:checked]:ring-1 has-[:checked]:ring-rose-500/50"><input type="radio" name="tipo" value="despesa" class="hidden"><span class="font-bold text-sm uppercase">Despesa</span></label>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Descrição</label><input type="text" id="form-desc" list="list-desc" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition placeholder-slate-600" placeholder="Ex: Salário, Aluguel..." required autocomplete="off"><datalist id="list-desc"></datalist></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Valor (R$)</label><input type="number" step="0.01" id="form-valor" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition font-mono" placeholder="0.00" required></div>
+                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Data</label><input type="date" id="form-data" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition [color-scheme:dark]" required></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Categoria</label><input type="text" id="form-categoria" list="list-cat" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition" placeholder="Selecionar..." required autocomplete="off"><datalist id="list-cat"></datalist></div>
+                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Responsável</label><input type="text" id="form-resp" list="list-resp" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition" placeholder="Quem?" autocomplete="off"><datalist id="list-resp"></datalist></div>
+                </div>
+                <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:border-slate-500 transition" onclick="document.getElementById('form-status').click()">
+                    <div class="flex items-center gap-3"><input type="checkbox" id="form-status" class="w-5 h-5 rounded border-slate-600 text-emerald-600 focus:ring-0 cursor-pointer accent-emerald-500 bg-slate-800"><label for="form-status" class="text-sm font-bold text-slate-300 cursor-pointer select-none">Lançamento Consolidado?</label></div><span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider bg-slate-800 px-2 py-1 rounded">Pago / Recebido</span>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-700 mt-2 sticky bottom-0 bg-slate-800 pb-2">
+                    <button type="button" id="btn-cancel-trans" class="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 font-medium transition text-sm">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition text-sm active:scale-95">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-day-details" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform transition-all scale-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
+                <div><h2 class="text-xl font-bold text-white flex items-center gap-2"><svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span id="modal-day-title">Detalhes do Dia</span></h2><p class="text-xs text-slate-400 mt-1">Extrato detalhado de movimentações.</p></div>
+                <button id="btn-close-day-details" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar" id="day-details-list"></div>
+            <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center bg-slate-900/50 p-3 rounded-lg shrink-0"><span class="text-sm font-bold text-slate-400 uppercase">Saldo do Dia</span><span class="text-lg font-bold text-white font-mono" id="modal-day-balance">R$ 0,00</span></div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="fixed inset-0 bg-slate-950/90 flex items-center justify-center hidden z-[60] backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-700">
+            <div class="text-center mb-8">
+                <div class="bg-emerald-600 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/20"><svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div>
+                <h2 class="text-2xl font-bold text-white tracking-tight">Acesso Restrito</h2>
+                <p class="text-slate-400 text-sm mt-2">Entre com suas credenciais.</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <button type="button" id="btn-login-google" class="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-3 mb-4 active:scale-95">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="G"> Entrar com Google
+                </button>
+                <div class="relative flex py-1 items-center"><div class="flex-grow border-t border-slate-600"></div><span class="flex-shrink-0 mx-4 text-slate-500 text-xs uppercase font-bold">Ou via E-mail</span><div class="flex-grow border-t border-slate-600"></div></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase ml-1">E-mail</label><input type="email" id="login-email" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition placeholder-slate-600" placeholder="seu@email.com"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase ml-1">Senha</label><input type="password" id="login-pass" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition placeholder-slate-600" placeholder="••••••••"></div>
+                <button type="submit" id="btn-perform-login" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg shadow-lg transition active:scale-95 mt-2">Entrar</button>
+            </form>
+            <button id="btn-close-login" class="w-full mt-6 text-slate-500 hover:text-emerald-400 text-sm transition font-medium">Cancelar / Voltar</button>
+        </div>
+    </div>
+
+    <div id="modal-confirm" class="fixed inset-0 bg-slate-950/80 hidden z-[70] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-sm border border-slate-700 text-center transform transition-all scale-100">
+            <div class="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+            <h3 id="modal-confirm-title" class="text-lg font-bold text-white mb-2">Tem certeza?</h3>
+            <p id="modal-confirm-desc" class="text-slate-400 text-sm mb-6 leading-relaxed">Essa ação não pode ser desfeita.</p>
+            <div class="flex gap-3 justify-center">
+                <button id="btn-confirm-no" class="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition text-sm w-full">Cancelar</button>
+                <button id="btn-confirm-yes" class="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition text-sm w-full">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-goals" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border border-slate-700 flex flex-col max-h-[80vh]">
+            <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-700 pb-2">Definir Limites Mensais</h2>
+            <p class="text-xs text-slate-400 mb-4">Defina quanto você quer gastar por categoria.</p>
+            <form id="form-goals" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2"><div id="goals-inputs-container" class="space-y-3"></div></form>
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-700 mt-4">
+                <button id="btn-close-goals" class="px-5 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 text-sm">Fechar</button>
+                <button id="btn-save-goals" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg text-sm">Salvar Metas</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-recurring" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl border border-slate-700 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                <div><h2 class="text-xl font-bold text-white flex items-center gap-2"><svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Contas Fixas & Recorrentes</h2><p class="text-xs text-slate-400 mt-1">Cadastre seus modelos e gere lançamentos em massa.</p></div>
+                <button id="btn-close-recurring" class="text-slate-400 hover:text-white transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            
+            <form id="form-add-recurring" class="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-6 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div class="md:col-span-4"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Descrição</label><input type="text" id="rec-desc" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="Ex: Aluguel" required></div>
+                <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Valor</label><input type="number" step="0.01" id="rec-val" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="0.00" required></div>
+                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Categoria</label><input type="text" id="rec-cat" list="list-cat" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="Ex: Moradia" required></div>
+                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Responsável</label><input type="text" id="rec-resp" list="list-resp" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="Ex: Wellington"></div>
+                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Tipo</label><select id="rec-type" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Frequência</label><select id="rec-freq" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500"><option value="mensal">Mensal (Mesmo dia)</option><option value="semanal">Semanal (7 dias)</option><option value="unica">Uma vez só</option></select></div>
+                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Repetições (Qtd)</label><input type="number" id="rec-times" value="1" min="1" max="60" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500"></div>
+                <div class="md:col-span-3"><button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded font-bold shadow transition h-[38px] flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Adicionar</button></div>
+            </form>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-900 rounded-lg border border-slate-700 relative">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-950 text-slate-400 font-medium uppercase text-xs sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2">Descrição / Detalhes</th>
+                            <th class="px-4 py-2 text-center">Regra</th>
+                            <th class="px-4 py-2 text-right">Valor</th>
+                            <th class="px-4 py-2 text-right w-16">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recurring-list-body" class="divide-y divide-slate-800 text-slate-300"></tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
+                <div class="flex items-center gap-2"><span class="text-sm text-slate-400">Início dos lançamentos:</span><input type="date" id="rec-generate-date" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm [color-scheme:dark]"></div>
+                <button id="btn-generate-recurring" class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition text-sm active:scale-95 flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg> Gerar Lançamentos</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
