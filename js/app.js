@@ -46,7 +46,9 @@ function changeDatabaseContext(collectionPath) {
     console.log(`🔌 Conectando: ${collectionPath}`);
     stopFinanceListener();
     const colRef = collection(db, collectionPath);
+    
     initFinanceModule(db, colRef);
+    initCalendar(db, colRef); // <--- AGORA O CALENDÁRIO RECEBE O BANCO
 }
 
 // --- FUNÇÕES DE UI (MENU E NAVEGAÇÃO) ---

@@ -113,7 +113,11 @@
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             </button>
 
-                            <input type="month" id="dash-month-filter" class="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition [color-scheme:dark] h-[38px] shadow-sm">
+                            <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700 shadow-sm">
+                                <input type="month" id="dash-month-filter" class="bg-transparent border-none text-white text-sm outline-none [color-scheme:dark] w-32 cursor-pointer" title="Mês Inicial">
+                                <span class="text-slate-500 text-xs">até</span>
+                                <input type="month" id="dash-month-end-filter" class="bg-transparent border-none text-white text-sm outline-none [color-scheme:dark] w-32 cursor-pointer" title="Mês Final (Opcional)">
+                            </div>
                         </div>
                     </header>
 
@@ -217,6 +221,12 @@
                         </div>
                         
                         <div class="flex flex-wrap gap-2 items-center">
+                            <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700 shadow-sm mr-2 h-[42px]">
+                                <input type="month" id="finance-month-filter" class="bg-transparent border-none text-white text-sm outline-none [color-scheme:dark] w-32 cursor-pointer">
+                                <span class="text-slate-500 text-xs">até</span>
+                                <input type="month" id="finance-month-end-filter" class="bg-transparent border-none text-white text-sm outline-none [color-scheme:dark] w-32 cursor-pointer">
+                            </div>
+
                             <input type="file" id="import-excel-input" class="hidden" accept=".xlsx, .xls">
 
                             <div id="bulk-actions-group" class="hidden flex gap-2">
@@ -276,7 +286,7 @@
 
                                     <tr class="border-b border-slate-700 bg-slate-900/50">
                                         <th class="px-4 py-2"></th>
-                                        <th class="px-6 py-2"><div class="relative w-full"><input type="date" id="filter-date" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case [color-scheme:dark] placeholder-slate-500"><button id="btn-clean-filter-date" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
+                                        <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-day" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500 text-center" placeholder="Dia..." maxlength="2"><button id="btn-clean-filter-day" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
                                         <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-desc" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500" placeholder="Buscar..."><button id="btn-clean-filter-desc" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
                                         <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-cat" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500" placeholder="Buscar..."><button id="btn-clean-filter-cat" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
                                         <th class="px-6 py-2"></th>
@@ -423,17 +433,6 @@
                     Salvar Lançamento
                 </button>
             </form>
-        </div>
-    </div>
-
-    <div id="modal-day-details" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
-        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform transition-all scale-100 flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
-                <div><h2 class="text-xl font-bold text-white flex items-center gap-2"><svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span id="modal-day-title">Detalhes do Dia</span></h2><p class="text-xs text-slate-400 mt-1">Extrato detalhado de movimentações.</p></div>
-                <button id="btn-close-day-details" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            </div>
-            <div class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar" id="day-details-list"></div>
-            <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center bg-slate-900/50 p-3 rounded-lg shrink-0"><span class="text-sm font-bold text-slate-400 uppercase">Saldo do Dia</span><span class="text-lg font-bold text-white font-mono" id="modal-day-balance">R$ 0,00</span></div>
         </div>
     </div>
 

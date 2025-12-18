@@ -58,6 +58,23 @@ export function closeConfirmModal() {
     confirmCallback = null;
 }
 
+// ✅ MELHORIA APLICADA: Função Skeleton adicionada para corrigir bug no admin.js
+// --- SKELETON LOADING ---
+export function renderSkeleton(tbody, cols, rows = 5) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    for (let i = 0; i < rows; i++) {
+        const tr = document.createElement('tr');
+        tr.className = "animate-pulse border-b border-slate-800";
+        let html = '';
+        for (let j = 0; j < cols; j++) {
+            html += `<td class="px-4 py-4"><div class="h-3 bg-slate-700/50 rounded w-full"></div></td>`;
+        }
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     safeBind('btn-confirm-no', 'click', closeConfirmModal);
     

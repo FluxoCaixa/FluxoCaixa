@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: js/modules/dashboard.js
- * DESCRIÇÃO: Dashboard com Importação Automática de Gráficos (RESOLVIDO)
+ * DESCRIÇÃO: Dashboard Inteligente (Modo Diário vs. Modo Mensal)
  */
 
 // --- IMPORTAÇÃO DIRETA DA BIBLIOTECA DE GRÁFICOS ---
@@ -9,20 +9,23 @@ import { Chart, registerables } from 'https://cdn.jsdelivr.net/npm/chart.js@4.4.
 // Registra os componentes necessários para desenhar
 Chart.register(...registerables);
 
+// Variáveis Globais dos Gráficos (para poder destruir e recriar)
 let dashboardChartFlow = null;
 let dashboardChartPie = null;
 let dashboardChartBar = null;
 let dashboardChartLine = null;
 
-// Estado
+// Estado da Aplicação
 let viewMode = 'real'; // 'real' ou 'forecast'
-let allDataCache = [];
+let allDataCache = []; // Armazena os dados recebidos do Financeiro
 let userGoals = JSON.parse(localStorage.getItem('fluxo_goals')) || {};
 
+// Inicialização
 export function initDashboard() {
     setupDashboardControls();
 }
 
+// Recebe dados do Financeiro (finance.js) e atualiza a tela
 export function updateDashboard(transactions) {
     console.log("📊 Dashboard: Recebidos", transactions.length, "itens.");
     allDataCache = transactions;
@@ -33,32 +36,23 @@ function setupDashboardControls() {
     const btnReal = document.getElementById('btn-view-real');
     const btnForecast = document.getElementById('btn-view-forecast');
     const btnGoals = document.getElementById('btn-open-goals');
-    const monthFilter = document.getElementById('dash-month-filter');
-
-    // Define mês atual se estiver vazio
-    if (monthFilter && !monthFilter.value) {
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        monthFilter.value = `${yyyy}-${mm}`;
-    }
-
+    
+    // Controles de Visualização (Realizado vs Previsão)
     if (btnReal && btnForecast) {
         btnReal.onclick = () => switchMode('real');
         btnForecast.onclick = () => switchMode('forecast');
     }
 
-    if (monthFilter) {
-        monthFilter.addEventListener('change', () => renderDashboard());
-    }
-
+    // Modal de Metas
     if (btnGoals) btnGoals.onclick = openGoalsModal;
     
-    // Botões do Modal
     const btnSave = document.getElementById('btn-save-goals');
     const btnClose = document.getElementById('btn-close-goals');
     if(btnSave) btnSave.onclick = saveGoals;
     if(btnClose) btnClose.onclick = () => document.getElementById('modal-goals').classList.add('hidden');
+    
+    // NOTA: Não adicionamos listener de data aqui. 
+    // Quem controla a mudança de data é o módulo finance.js, que chama updateDashboard() quando os dados chegam.
 }
 
 function switchMode(mode) {
@@ -87,42 +81,39 @@ function switchMode(mode) {
     renderDashboard();
 }
 
+// --- RENDERIZAÇÃO PRINCIPAL ---
 function renderDashboard() {
-    const monthFilter = document.getElementById('dash-month-filter');
-    const selectedMonth = monthFilter ? monthFilter.value : null;
+    // Lê os inputs de data para saber se é um intervalo
+    const startMonth = document.getElementById('dash-month-filter')?.value;
+    const endMonth = document.getElementById('dash-month-end-filter')?.value;
+    
+    // Modo Intervalo: Ativo se tiver EndMonth e for diferente de StartMonth
+    const isRangeMode = endMonth && endMonth !== startMonth;
 
-    // 1. FILTRAGEM
+    // 1. FILTRAGEM BÁSICA (Status e Datas inválidas)
     let filteredData = allDataCache.filter(t => {
         if (!t.date || t.date === 'Invalid Date') return false;
-
-        // Filtro Mês
-        if (selectedMonth && !t.date.startsWith(selectedMonth)) return false;
         
-        // Filtro Status
+        // Filtra PAGO/PENDENTE conforme o modo de visualização
         const isPaid = t.status === true || t.status === 'true' || t.status === 'Pago';
-
-        if (viewMode === 'real') {
-            return isPaid; 
-        } else {
-            return true; // Previsão pega tudo
-        }
+        return viewMode === 'real' ? isPaid : true;
     });
 
-    console.log(`🔍 Modo: ${viewMode.toUpperCase()} | Itens filtrados: ${filteredData.length}`);
+    console.log(`🔍 Dash: ${filteredData.length} itens processados. Modo Intervalo: ${isRangeMode ? 'SIM' : 'NÃO'}`);
 
-    // 2. CÁLCULOS KPI
+    // 2. CÁLCULOS KPI (Totais Gerais)
     let totalReceitas = 0;
     let totalDespesas = 0;
 
     filteredData.forEach(t => {
         const val = Number(t.value) || 0;
-        // Verifica variações de escrita para receita
         if (t.type === 'receita' || t.type === 'ENTRADA') totalReceitas += val;
         else totalDespesas += val;
     });
 
     const saldo = totalReceitas - totalDespesas;
 
+    // Atualiza os Cards Superiores
     animateValue("kpi-receitas", totalReceitas);
     animateValue("kpi-despesas", totalDespesas);
     animateValue("kpi-saldo", saldo);
@@ -130,46 +121,104 @@ function renderDashboard() {
     
     renderGoalsSection(filteredData);
     
-    // Chama os gráficos (agora com a biblioteca garantida)
-    updateCharts(filteredData, selectedMonth);
+    // Atualiza os Gráficos com a lógica inteligente
+    updateCharts(filteredData, startMonth, endMonth, isRangeMode);
 }
 
-// --- GRÁFICOS ---
-function updateCharts(data, selectedMonth) {
-    // Destrói gráficos antigos
-    if (dashboardChartFlow) { dashboardChartFlow.destroy(); }
-    if (dashboardChartPie) { dashboardChartPie.destroy(); }
-    if (dashboardChartBar) { dashboardChartBar.destroy(); }
-    if (dashboardChartLine) { dashboardChartLine.destroy(); }
+// --- GRÁFICOS INTELIGENTES (Diário vs Mensal) ---
+function updateCharts(data, startMonth, endMonth, isRangeMode) {
+    // Destrói gráficos antigos para não sobrepor
+    if (dashboardChartFlow) dashboardChartFlow.destroy();
+    if (dashboardChartPie) dashboardChartPie.destroy();
+    if (dashboardChartBar) dashboardChartBar.destroy();
+    if (dashboardChartLine) dashboardChartLine.destroy();
 
-    // Configuração dos Dias
-    const year = selectedMonth ? parseInt(selectedMonth.split('-')[0]) : new Date().getFullYear();
-    const month = selectedMonth ? parseInt(selectedMonth.split('-')[1]) : new Date().getMonth() + 1;
-    const daysInMonth = new Date(year, month, 0).getDate();
+    // PREPARAÇÃO DOS DADOS (EIXO X e Y)
+    let labels = [];
+    let dataRec = [];
+    let dataDesp = [];
+    let dataBalance = [];
 
-    const daily = {};
-    for(let i=1; i<=daysInMonth; i++) daily[i] = { r: 0, d: 0 };
+    if (isRangeMode) {
+        // === MODO INTERVALO (Agrupado por Mês: Jan, Fev, Mar...) ===
+        
+        const monthlyData = {};
+        
+        // Inicializa chaves para todos os meses do intervalo (para garantir que meses vazios apareçam zerados)
+        let curr = new Date(startMonth + '-01');
+        const end = new Date(endMonth + '-01');
+        // Adiciona fuso horário seguro para evitar problemas de virada de dia
+        curr.setUTCHours(12,0,0,0);
+        end.setUTCHours(12,0,0,0);
 
-    data.forEach(t => {
-        const parts = t.date.split('-');
-        if (parts.length === 3) {
-            const d = parseInt(parts[2]);
-            const val = Number(t.value) || 0;
-            if (daily[d]) {
-                if (t.type === 'receita' || t.type === 'ENTRADA') daily[d].r += val;
-                else daily[d].d += val;
-            }
+        while(curr <= end) {
+            const k = curr.toISOString().slice(0, 7); // Chave "YYYY-MM"
+            monthlyData[k] = { 
+                r: 0, 
+                d: 0, 
+                label: curr.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' }) 
+            };
+            curr.setMonth(curr.getMonth() + 1);
         }
-    });
 
-    const labels = Object.keys(daily);
-    const dataRec = labels.map(d => daily[d].r);
-    const dataDesp = labels.map(d => daily[d].d * -1);
+        // Popula com os dados
+        data.forEach(t => {
+            const key = t.date.slice(0, 7); // Pega o YYYY-MM da transação
+            if(monthlyData[key]) {
+                const val = Number(t.value) || 0;
+                if (t.type === 'receita' || t.type === 'ENTRADA') monthlyData[key].r += val;
+                else monthlyData[key].d += val;
+            }
+        });
 
+        // Ordena cronologicamente
+        const sortedKeys = Object.keys(monthlyData).sort();
+        labels = sortedKeys.map(k => monthlyData[k].label);
+        dataRec = sortedKeys.map(k => monthlyData[k].r);
+        dataDesp = sortedKeys.map(k => monthlyData[k].d * -1); // Negativo para gráfico espelhado
+
+        // Calcula Saldo Acumulado ao longo dos meses
+        let acc = 0;
+        dataBalance = sortedKeys.map(k => {
+            acc += (monthlyData[k].r - monthlyData[k].d);
+            return acc;
+        });
+
+    } else {
+        // === MODO MENSAL ÚNICO (Agrupado por Dia: 1, 2, 3... 31) ===
+        
+        const year = startMonth ? parseInt(startMonth.split('-')[0]) : new Date().getFullYear();
+        const month = startMonth ? parseInt(startMonth.split('-')[1]) : new Date().getMonth() + 1;
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        const daily = {};
+        for(let i=1; i<=daysInMonth; i++) daily[i] = { r: 0, d: 0 };
+
+        data.forEach(t => {
+            const parts = t.date.split('-');
+            if (parts.length === 3) {
+                const day = parseInt(parts[2]);
+                const val = Number(t.value) || 0;
+                if(daily[day]) {
+                    if (t.type === 'receita' || t.type === 'ENTRADA') daily[day].r += val;
+                    else daily[day].d += val;
+                }
+            }
+        });
+
+        labels = Object.keys(daily);
+        dataRec = Object.values(daily).map(x => x.r);
+        dataDesp = Object.values(daily).map(x => x.d * -1);
+        
+        let acc = 0;
+        dataBalance = Object.values(daily).map(x => { acc += (x.r - x.d); return acc; });
+    }
+
+    // Cores (Verde/Vermelho para Realizado, Tons pastéis para Previsão)
     const colorRec = viewMode === 'real' ? '#10b981' : '#34d399'; 
     const colorDesp = viewMode === 'real' ? '#f43f5e' : '#fb7185'; 
 
-    // 1. Gráfico Fluxo
+    // 1. GRÁFICO DE FLUXO (Barras)
     const ctxFlow = document.getElementById('chartFlow');
     if (ctxFlow) {
         dashboardChartFlow = new Chart(ctxFlow, {
@@ -177,24 +226,25 @@ function updateCharts(data, selectedMonth) {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Entradas', data: dataRec, backgroundColor: colorRec, borderRadius: 3 },
-                    { label: 'Saídas', data: dataDesp, backgroundColor: colorDesp, borderRadius: 3 }
+                    { label: 'Entradas', data: dataRec, backgroundColor: colorRec, borderRadius: 4 },
+                    { label: 'Saídas', data: dataDesp, backgroundColor: colorDesp, borderRadius: 4 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                scales: { x: { display: false }, y: { display: false } },
-                plugins: { legend: { display: false } }
+                scales: { 
+                    x: { grid: { display: false }, ticks: { color: '#64748b', font: {size: 10} } }, 
+                    y: { display: false } 
+                },
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
             }
         });
     }
 
-    // 2. Pizza
-    let sumR = 0, sumD = 0;
-    data.forEach(t => {
-        const val = Number(t.value);
-        if (t.type === 'receita' || t.type === 'ENTRADA') sumR += val; else sumD += val;
-    });
+    // 2. GRÁFICO DE PIZZA (Receita vs Despesa Total)
+    // Calcula totais absolutos para a pizza
+    const sumR = isRangeMode ? dataRec.reduce((a,b)=>a+b,0) : dataRec.reduce((a,b)=>a+b,0);
+    const sumD = isRangeMode ? dataDesp.reduce((a,b)=>a+Math.abs(b),0) : dataDesp.reduce((a,b)=>a+Math.abs(b),0);
 
     const ctxPie = document.getElementById('chartIncomeExpense');
     if (ctxPie) {
@@ -208,7 +258,7 @@ function updateCharts(data, selectedMonth) {
         });
     }
 
-    // 3. Categorias
+    // 3. GRÁFICO DE CATEGORIAS (Top 5 Despesas)
     const cats = {};
     data.filter(t => t.type !== 'receita' && t.type !== 'ENTRADA').forEach(t => {
         cats[t.category] = (cats[t.category] || 0) + Number(t.value);
@@ -234,13 +284,7 @@ function updateCharts(data, selectedMonth) {
         });
     }
 
-    // 4. Saldo
-    let acc = 0;
-    const lineData = labels.map(d => {
-        acc += (daily[d].r - daily[d].d);
-        return acc;
-    });
-
+    // 4. GRÁFICO DE LINHA (Evolução do Saldo)
     const ctxLine = document.getElementById('chartBalanceEvolution');
     if (ctxLine) {
         dashboardChartLine = new Chart(ctxLine, {
@@ -248,25 +292,28 @@ function updateCharts(data, selectedMonth) {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Saldo',
-                    data: lineData,
+                    label: 'Saldo Acumulado',
+                    data: dataBalance,
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 0
+                    // Mostra pontos apenas no modo mensal para destacar os meses
+                    pointRadius: isRangeMode ? 4 : 0, 
+                    pointBackgroundColor: '#10b981'
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: { x: { display: false }, y: { display: false } },
-                plugins: { legend: { display: false } }
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
             }
         });
     }
 }
 
-// --- UTILITÁRIOS ---
+// --- UTILITÁRIOS VISUAIS ---
+
 function animateValue(id, val) {
     const el = document.getElementById(id);
     if(el) {
@@ -291,14 +338,24 @@ function openGoalsModal() {
     const modal = document.getElementById('modal-goals');
     const container = document.getElementById('goals-inputs-container');
     if(!modal || !container) return;
+    
+    // Pega categorias únicas das despesas atuais
     const cats = [...new Set(allDataCache.filter(t => t.type !== 'receita' && t.type !== 'ENTRADA').map(t => t.category))].sort();
+    
     container.innerHTML = '';
-    if(cats.length === 0) container.innerHTML = '<p class="text-slate-500 text-center text-sm">Sem dados para metas.</p>';
+    if(cats.length === 0) container.innerHTML = '<p class="text-slate-500 text-center text-sm">Sem dados para metas no período selecionado.</p>';
+    
     cats.forEach(cat => {
         const val = userGoals[cat] || '';
         const div = document.createElement('div');
         div.className = "flex items-center justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-700";
-        div.innerHTML = `<span class="text-sm text-white font-medium uppercase">${cat}</span><div class="flex items-center gap-2"><span class="text-slate-500 text-xs">R$</span><input type="number" class="goal-input w-24 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-right outline-none focus:border-emerald-500" data-cat="${cat}" value="${val}"></div>`;
+        div.innerHTML = `
+            <span class="text-sm text-white font-medium uppercase">${cat}</span>
+            <div class="flex items-center gap-2">
+                <span class="text-slate-500 text-xs">R$</span>
+                <input type="number" class="goal-input w-24 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-right outline-none focus:border-emerald-500" data-cat="${cat}" value="${val}">
+            </div>
+        `;
         container.appendChild(div);
     });
     modal.classList.remove('hidden');
@@ -310,12 +367,13 @@ function saveGoals() {
     inputs.forEach(i => { if(i.value > 0) userGoals[i.dataset.cat] = parseFloat(i.value); });
     localStorage.setItem('fluxo_goals', JSON.stringify(userGoals));
     document.getElementById('modal-goals').classList.add('hidden');
-    renderDashboard();
+    renderDashboard(); // Recalcula as barras de progresso
 }
 
 function renderGoalsSection(data) {
     const section = document.getElementById('goals-section');
     const list = document.getElementById('goals-list');
+    
     if(!Object.keys(userGoals).length) { if(section) section.classList.add('hidden'); return; }
     if(section) section.classList.remove('hidden');
     if(list) list.innerHTML = '';
@@ -327,8 +385,17 @@ function renderGoalsSection(data) {
         const spent = expenses[cat] || 0;
         const pct = Math.min((spent/lim)*100, 100);
         let color = pct>=100 ? 'bg-rose-500' : (pct>80 ? 'bg-amber-500' : 'bg-emerald-500');
+        
         const el = document.createElement('div');
-        el.innerHTML = `<div class="flex justify-between text-xs mb-1"><span class="font-bold text-white uppercase">${cat}</span><span class="text-slate-400">${spent.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} / ${lim.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span></div><div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden"><div class="${color} h-2.5 rounded-full transition-all duration-1000" style="width: ${pct}%"></div></div>`;
+        el.innerHTML = `
+            <div class="flex justify-between text-xs mb-1">
+                <span class="font-bold text-white uppercase">${cat}</span>
+                <span class="text-slate-400">${spent.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} / ${lim.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+            </div>
+            <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden">
+                <div class="${color} h-2.5 rounded-full transition-all duration-1000" style="width: ${pct}%"></div>
+            </div>
+        `;
         list.appendChild(el);
     }
 }

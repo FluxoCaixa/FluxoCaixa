@@ -1,15 +1,15 @@
 /**
  * ARQUIVO: js/modules/finance.js
- * DESCRIÇÃO: Módulo Financeiro Completo (Tabela, Filtros, Excel, Recorrência, Ações em Massa).
+ * DESCRIÇÃO: Módulo Financeiro (Correção de Leitura de Filtros + Todas as Funções)
  */
 import { 
-    onSnapshot, addDoc, deleteDoc, updateDoc, doc, writeBatch, collection, getDocs 
+    onSnapshot, addDoc, deleteDoc, updateDoc, doc, writeBatch, collection, getDocs,
+    query, where, orderBy 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { showToast } from '../utils.js';
 import { updateDashboard } from './dashboard.js';
-import { updateCalendarData } from './calendar.js';
 
-let unsubscribe = null;
+let currentMonthUnsubscribe = null;
 let unsubscribeRecurring = null;
 let currentCollectionRef = null;
 let currentRecurringRef = null;
@@ -17,25 +17,90 @@ let currentRecurringRef = null;
 // ESTADO GLOBAL
 let currentTransactions = []; 
 let currentSortCol = 'date';  
-let currentSortOrder = 'desc'; 
+let currentSortOrder = 'desc';
+let activeTab = null; 
+
+// Utilitário para pegar valor atualizado do DOM (corrige bug do cloneNode)
+const getVal = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value : null;
+};
 
 export function initFinanceModule(db, collectionRef) {
+    console.log("💰 Finance: Inicializando módulo...");
     currentCollectionRef = collectionRef;
     currentRecurringRef = collection(collectionRef.parent, "recurring");
 
-    // 1. LISTENER DE TRANSAÇÕES
-    if (unsubscribe) unsubscribe();
-    unsubscribe = onSnapshot(collectionRef, (snapshot) => {
-        const transactions = [];
-        snapshot.forEach((doc) => transactions.push({ id: doc.id, ...doc.data() }));
-        
-        currentTransactions = transactions; 
-        renderTable(); // Renderiza (aplica filtros e ordenação)
-        updateDashboard(transactions);
-        updateCalendarData(transactions);
-    }, (error) => console.error("Erro transactions:", error));
+    // 1. INICIALIZAÇÃO DOS INPUTS
+    // Precisamos pegar os elementos apenas para definir o valor inicial se vazio
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    ['dash-month-filter', 'finance-month-filter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value) el.value = currentMonth;
+    });
 
-    // 2. LISTENER DE MODELOS (FIXAS)
+    // --- FUNÇÕES DE CARGA (Lendo sempre o elemento vivo do DOM) ---
+    
+    const loadFromDashboard = () => {
+        const s = getVal('dash-month-filter') || currentMonth;
+        const e = getVal('dash-month-end-filter');
+        
+        if (e && e < s) return showToast("Mês final inválido.", "warn");
+        
+        console.log(`🔄 Contexto: Dashboard (Filtro: ${s} até ${e || 'fim do mês'})`);
+        setupMonthListener(s, e);
+    };
+
+    const loadFromFinance = () => {
+        const s = getVal('finance-month-filter') || currentMonth;
+        const e = getVal('finance-month-end-filter');
+        
+        if (e && e < s) return showToast("Mês final inválido.", "warn");
+        
+        console.log(`🔄 Contexto: Lançamentos (Filtro: ${s} até ${e || 'fim do mês'})`);
+        setupMonthListener(s, e);
+    };
+
+    // --- REGENERAR LISTENERS DE INPUT (Sem perder a referência) ---
+    // Clonamos para limpar eventos antigos, mas lemos pelo ID na função loadFrom...
+    
+    const attachListener = (id, callback) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const clone = el.cloneNode(true);
+            el.parentNode.replaceChild(clone, el);
+            clone.addEventListener('change', callback);
+        }
+    };
+
+    attachListener('dash-month-filter', loadFromDashboard);
+    attachListener('dash-month-end-filter', loadFromDashboard);
+    attachListener('finance-month-filter', loadFromFinance);
+    attachListener('finance-month-end-filter', loadFromFinance);
+
+    // --- DETECÇÃO DE ABA (OBSERVER) ---
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const target = mutation.target;
+                if (target.classList.contains('active')) {
+                    const newTabId = target.id;
+                    if (activeTab !== newTabId) {
+                        activeTab = newTabId;
+                        if (newTabId === 'dashboard') loadFromDashboard();
+                        if (newTabId === 'lancamentos') loadFromFinance();
+                    }
+                }
+            }
+        });
+    });
+
+    const pages = document.querySelectorAll('.page-content');
+    pages.forEach(page => observer.observe(page, { attributes: true }));
+
+    // 2. LISTENER DE RECORRÊNCIA (SEMPRE ATIVO)
     if (unsubscribeRecurring) unsubscribeRecurring();
     unsubscribeRecurring = onSnapshot(currentRecurringRef, (snapshot) => {
         const items = [];
@@ -43,67 +108,114 @@ export function initFinanceModule(db, collectionRef) {
         renderRecurringTable(items);
     }, (error) => console.warn("Erro recurring:", error));
 
-    // INICIALIZAÇÃO DE COMPONENTES
+    // COMPONENTES UI
     setupFormListeners();
     setupBulkActions(db);
     setupExcelHandlers(db);
     setupRecurringHandlers(db);
     setupSortListeners(); 
-    setupFilterListeners(); // <--- ATIVA OS FILTROS
+    setupFilterListeners();
+
+    // CARGA INICIAL
+    if (document.getElementById('lancamentos')?.classList.contains('active')) {
+        activeTab = 'lancamentos';
+        loadFromFinance();
+    } else {
+        activeTab = 'dashboard';
+        loadFromDashboard();
+    }
+}
+
+// --- BUSCA NO BANCO ---
+function setupMonthListener(startMonth, endMonth) {
+    // 0. Limpa filtros da tabela para não esconder dados
+    clearTableFilters();
+
+    // 1. Limpa listener anterior do Firebase
+    if (currentMonthUnsubscribe) { 
+        currentMonthUnsubscribe(); 
+        currentMonthUnsubscribe = null; 
+    }
+
+    if (!currentCollectionRef || !startMonth) return;
+
+    // 2. Calcula Datas
+    const finalMonth = endMonth || startMonth;
+    const startDate = `${startMonth}-01`;
+    
+    const [y, m] = finalMonth.split('-').map(Number);
+    // m é base 1. Date(y, m, 0) pega o dia 0 do mês seguinte -> Último dia do mês m.
+    const lastDay = new Date(y, m, 0).getDate();
+    const endDate = `${finalMonth}-${lastDay}`;
+
+    console.log(`📡 Finance: Buscando de ${startDate} até ${endDate}...`);
+
+    try {
+        const q = query(
+            currentCollectionRef,
+            where('date', '>=', startDate),
+            where('date', '<=', endDate),
+            orderBy('date', 'desc')
+        );
+
+        currentMonthUnsubscribe = onSnapshot(q, (snapshot) => {
+            const transactions = [];
+            snapshot.forEach((doc) => transactions.push({ id: doc.id, ...doc.data() }));
+            
+            console.log(`📡 Finance: Recebidos ${transactions.length} itens.`);
+            
+            currentTransactions = transactions; 
+            renderTable(); 
+            updateDashboard(transactions);
+        }, (error) => {
+            console.error("Erro no listener:", error);
+            if (error.message && error.message.includes("requires an index")) {
+                showToast("Erro: Índice necessário (ver console).", "error");
+            } else {
+                showToast("Erro ao carregar dados.", "error");
+            }
+        });
+    } catch (err) {
+        console.error("Erro query:", err);
+    }
 }
 
 export function stopFinanceListener() {
-    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    if (currentMonthUnsubscribe) { currentMonthUnsubscribe(); currentMonthUnsubscribe = null; }
     if (unsubscribeRecurring) { unsubscribeRecurring(); unsubscribeRecurring = null; }
 }
 
-// --- FILTROS (NOVA LÓGICA) ---
+// --- FILTROS DE TABELA ---
 function setupFilterListeners() {
-    // Inputs de Texto/Data (Ouvir evento 'input' para tempo real)
-    const inputs = ['filter-date', 'filter-desc', 'filter-cat'];
-    inputs.forEach(id => {
+    ['filter-day', 'filter-desc', 'filter-cat'].forEach(id => {
         const el = document.getElementById(id);
-        if(el) el.addEventListener('input', renderTable);
+        if(el) {
+            const clone = el.cloneNode(true);
+            el.parentNode.replaceChild(clone, el);
+            clone.addEventListener('input', renderTable);
+        }
     });
 
-    // Botões de Limpeza Individual (os 'X' dentro dos inputs)
-    document.getElementById('btn-clean-filter-date')?.addEventListener('click', () => {
-        document.getElementById('filter-date').value = ''; renderTable();
+    document.getElementById('btn-clean-filter-day')?.addEventListener('click', () => {
+        const el = document.getElementById('filter-day'); if(el) el.value = ''; renderTable();
     });
     document.getElementById('btn-clean-filter-desc')?.addEventListener('click', () => {
-        document.getElementById('filter-desc').value = ''; renderTable();
+        const el = document.getElementById('filter-desc'); if(el) el.value = ''; renderTable();
     });
     document.getElementById('btn-clean-filter-cat')?.addEventListener('click', () => {
-        document.getElementById('filter-cat').value = ''; renderTable();
+        const el = document.getElementById('filter-cat'); if(el) el.value = ''; renderTable();
     });
 
-    // Botão "Limpar Tudo"
     document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
-        inputs.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = '';
-        });
+        clearTableFilters();
         renderTable();
     });
 }
 
-// --- ORDENAÇÃO E RENDERIZAÇÃO ---
-function setupSortListeners() {
-    const headers = document.querySelectorAll('.sort-header');
-    headers.forEach(th => {
-        const newTh = th.cloneNode(true);
-        th.parentNode.replaceChild(newTh, th);
-
-        newTh.addEventListener('click', () => {
-            const col = newTh.getAttribute('data-col');
-            if (currentSortCol === col) {
-                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSortCol = col;
-                currentSortOrder = 'asc';
-            }
-            renderTable();
-        });
+function clearTableFilters() {
+    ['filter-day', 'filter-desc', 'filter-cat'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
     });
 }
 
@@ -111,38 +223,34 @@ function renderTable() {
     const tbody = document.getElementById('transactions-tbody');
     const checkAll = document.getElementById('check-all-rows');
     
-    // Elementos de Filtro
-    const fDate = document.getElementById('filter-date')?.value;
+    // Pega valores diretamente do DOM na hora da renderização
+    const fDay = document.getElementById('filter-day')?.value.trim();
     const fDesc = document.getElementById('filter-desc')?.value.toLowerCase();
     const fCat = document.getElementById('filter-cat')?.value.toLowerCase();
 
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // 1. FILTRAGEM
     let filteredList = currentTransactions.filter(t => {
-        const matchDate = fDate ? t.date === fDate : true;
+        const matchDay = fDay ? t.date.split('-')[2].includes(fDay) : true;
         const matchDesc = fDesc ? t.description.toLowerCase().includes(fDesc) : true;
         const matchCat = fCat ? t.category.toLowerCase().includes(fCat) : true;
-        return matchDate && matchDesc && matchCat;
+        return matchDay && matchDesc && matchCat;
     });
 
-    // 2. ORDENAÇÃO
+    // Ordenação
     filteredList.sort((a, b) => {
         let valA = a[currentSortCol];
         let valB = b[currentSortCol];
-
         if (typeof valA === 'string') valA = valA.toLowerCase();
         if (typeof valB === 'string') valB = valB.toLowerCase();
-
         let comparison = 0;
         if (valA > valB) comparison = 1;
         else if (valA < valB) comparison = -1;
-
         return currentSortOrder === 'asc' ? comparison : comparison * -1;
     });
 
-    // Atualiza ícones de ordenação
+    // Ícones de Ordenação
     document.querySelectorAll('.sort-header .sort-icon').forEach(icon => {
         icon.innerText = '⇅'; 
         icon.classList.remove('text-emerald-400');
@@ -153,14 +261,12 @@ function renderTable() {
         activeHeader.classList.add('text-emerald-400');
     }
 
-    // 3. RENDERIZAÇÃO
     if (filteredList.length === 0) {
-        // Mensagem diferente se for filtro vazio ou lista vazia
         if (currentTransactions.length > 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">Nenhum resultado para os filtros. <button id="btn-reset-empty" class="text-emerald-400 hover:underline ml-1">Limpar Filtros</button></td></tr>';
             document.getElementById('btn-reset-empty')?.addEventListener('click', () => document.getElementById('btn-clear-filters').click());
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">Nenhum lançamento.<br><span class="text-xs">Clique em "Novo" para começar.</span></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">Nenhum lançamento neste período.<br><span class="text-xs">Verifique o filtro de mês ou crie um novo.</span></td></tr>';
         }
         return;
     }
@@ -169,7 +275,6 @@ function renderTable() {
         const val = parseFloat(t.value);
         const color = t.type === 'receita' ? 'text-emerald-400' : 'text-rose-400';
         const sign = t.type === 'receita' ? '+' : '-';
-        
         const statusClass = t.status ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20';
         const statusText = t.status ? 'Pago' : 'Pendente';
 
@@ -207,7 +312,44 @@ function renderTable() {
     }
 }
 
-// --- AÇÕES EM MASSA ---
+// --- FUNÇÕES AUXILIARES ---
+function renderRecurringTable(items) {
+    const tbody = document.getElementById('recurring-list-body');
+    if(!tbody) return; tbody.innerHTML = '';
+    
+    if(items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 text-sm italic">Nenhum modelo cadastrado ainda.</td></tr>';
+        return;
+    }
+
+    items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-slate-700/50 text-xs hover:bg-slate-800 transition";
+        tr.innerHTML = `<td class="px-4 py-3"><p class="font-bold text-white">${item.description}</p></td><td class="px-4 py-3 text-center text-slate-400 capitalize">${item.frequency}</td><td class="px-4 py-3 text-right font-mono font-bold text-white">R$ ${parseFloat(item.value).toFixed(2)}</td><td class="px-4 py-3 text-right"><button class="btn-del-rec text-slate-500 hover:text-rose-500 transition p-2" data-id="${item.id}">🗑️</button></td>`;
+        tr.querySelector('.btn-del-rec').onclick = async () => { if(confirm("Excluir modelo?")) await deleteDoc(doc(currentRecurringRef, item.id)); };
+        tbody.appendChild(tr);
+    });
+}
+
+async function deleteTransaction(id) {
+    if (!confirm("Excluir item?")) return;
+    try { await deleteDoc(doc(currentCollectionRef, id)); showToast("Item excluído."); } catch (e) { showToast("Erro.", "error"); }
+}
+
+function setupSortListeners() {
+    const headers = document.querySelectorAll('.sort-header');
+    headers.forEach(th => {
+        const newTh = th.cloneNode(true);
+        th.parentNode.replaceChild(newTh, th);
+        newTh.addEventListener('click', () => {
+            const col = newTh.getAttribute('data-col');
+            if (currentSortCol === col) currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            else { currentSortCol = col; currentSortOrder = 'asc'; }
+            renderTable();
+        });
+    });
+}
+
 function setupBulkActions(db) {
     const btnDelete = document.getElementById('btn-bulk-delete');
     const btnFinish = document.getElementById('btn-bulk-finish');
@@ -245,7 +387,8 @@ function setupBulkActions(db) {
 }
 
 function resetSelection() {
-    document.getElementById('check-all-rows').checked = false;
+    const el = document.getElementById('check-all-rows');
+    if(el) el.checked = false;
     const checked = document.querySelectorAll('.row-checkbox:checked');
     checked.forEach(c => c.checked = false);
     updateBulkUI();
@@ -261,7 +404,6 @@ function updateBulkUI() {
     }
 }
 
-// --- OUTROS MÓDULOS ---
 function setupRecurringHandlers(db) {
     const btnOpen = document.getElementById('btn-open-recurring');
     const btnClose = document.getElementById('btn-close-recurring');
@@ -331,23 +473,6 @@ function setupRecurringHandlers(db) {
     }
 }
 
-function renderRecurringTable(items) {
-    const tbody = document.getElementById('recurring-list-body');
-    if(!tbody) return; tbody.innerHTML = '';
-    items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.className = "border-b border-slate-700/50 text-xs hover:bg-slate-800 transition";
-        tr.innerHTML = `<td class="px-4 py-3"><p class="font-bold text-white">${item.description}</p></td><td class="px-4 py-3 text-center text-slate-400 capitalize">${item.frequency}</td><td class="px-4 py-3 text-right font-mono font-bold text-white">R$ ${parseFloat(item.value).toFixed(2)}</td><td class="px-4 py-3 text-right"><button class="btn-del-rec text-slate-500 hover:text-rose-500 transition p-2" data-id="${item.id}">🗑️</button></td>`;
-        tr.querySelector('.btn-del-rec').onclick = async () => { if(confirm("Excluir modelo?")) await deleteDoc(doc(currentRecurringRef, item.id)); };
-        tbody.appendChild(tr);
-    });
-}
-
-async function deleteTransaction(id) {
-    if (!confirm("Excluir item?")) return;
-    try { await deleteDoc(doc(currentCollectionRef, id)); showToast("Item excluído."); } catch (e) { showToast("Erro.", "error"); }
-}
-
 function setupFormListeners() {
     const btnNew = document.getElementById('btn-new-transaction');
     const modal = document.getElementById('modal-transaction');
@@ -356,7 +481,7 @@ function setupFormListeners() {
 
     if (btnNew) btnNew.onclick = () => {
         form.reset();
-        document.getElementById('form-data').valueAsDate = new Date(); // Data hoje
+        document.getElementById('form-data').valueAsDate = new Date();
         modal.classList.remove('hidden');
     };
 
@@ -365,77 +490,62 @@ function setupFormListeners() {
     if (form) {
         form.onsubmit = async (e) => {
             e.preventDefault();
-            
-            // Validações
             const desc = document.getElementById('form-desc').value;
             const valStr = document.getElementById('form-valor').value;
             const valor = parseFloat(valStr);
-            
             if (isNaN(valor) || !valStr) return showToast("Digite um valor válido.", "warn");
             if (!desc) return showToast("Digite uma descrição.", "warn");
-
             const data = document.getElementById('form-data').value;
             const cat = document.getElementById('form-categoria').value;
             const resp = document.getElementById('form-resp').value;
             const status = document.getElementById('form-status').checked;
-            
-            // Pega o Radio Button Selecionado
             const tipoEl = document.querySelector('input[name="tipo"]:checked');
             if(!tipoEl) return showToast("Selecione: Receita ou Despesa?", "info");
 
             try {
                 await addDoc(currentCollectionRef, {
-                    description: desc,
-                    value: valor,
-                    date: data,
-                    category: cat,
-                    responsibility: resp,
-                    status: status,
-                    type: tipoEl.value, // 'receita' ou 'despesa'
-                    createdAt: new Date().toISOString()
+                    description: desc, value: valor, date: data, category: cat, responsibility: resp,
+                    status: status, type: tipoEl.value, createdAt: new Date().toISOString()
                 });
-
-                showToast("Lançamento salvo com sucesso!");
-                modal.classList.add('hidden');
-                form.reset();
-            } catch (error) {
-                console.error("Erro ao salvar:", error);
-                showToast("Erro ao salvar no banco.", "error");
-            }
+                showToast("Lançamento salvo!");
+                modal.classList.add('hidden'); form.reset();
+            } catch (error) { console.error("Erro:", error); showToast("Erro ao salvar.", "error"); }
         };
     }
 }
 
-// --- EXCEL & MODELO (CORRIGIDO) ---
 function setupExcelHandlers(db) {
     const btnExport = document.getElementById('btn-export-excel');
     const btnImport = document.getElementById('btn-import-excel');
     const inputImport = document.getElementById('import-excel-input');
     const btnTemplate = document.getElementById('btn-download-template');
 
+    const getUtils = () => window.XLSX ? window.XLSX.utils : null;
+
     if (btnExport) btnExport.onclick = () => {
         if (currentTransactions.length === 0) return showToast("Nada para exportar.", "info");
         const data = currentTransactions.map(t => ({ 
             Data: new Date(t.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'}), 
-            Descrição: t.description, 
-            Categoria: t.category, 
-            Valor: t.value, 
+            Descrição: t.description, Categoria: t.category, Valor: t.value, 
             Tipo: t.type === 'receita' ? 'ENTRADA' : 'SAÍDA', 
-            Responsabilidade: t.responsibility || '', 
-            Status: t.status ? 'Pago' : 'Pendente' 
+            Responsabilidade: t.responsibility || '', Status: t.status ? 'Pago' : 'Pendente' 
         }));
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-        XLSX.writeFile(wb, "FluxoCaixa_Export.xlsx");
+        const utils = getUtils();
+        if(!utils) return showToast("Biblioteca XLSX não carregada.", "error");
+        const ws = utils.json_to_sheet(data);
+        const wb = window.XLSX.utils.book_new();
+        utils.book_append_sheet(wb, ws, "Lançamentos");
+        window.XLSX.writeFile(wb, "FluxoCaixa_Export.xlsx");
     };
 
     if (btnTemplate) btnTemplate.onclick = () => {
         const data = [{ Data: '01/01/2026', Descrição: 'Exemplo', Categoria: 'Geral', Valor: -50.00, Tipo: 'SAÍDA', Responsabilidade: 'EU', Status: 'Pago' }];
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new(); 
-        XLSX.utils.book_append_sheet(wb, ws, "Modelo");
-        XLSX.writeFile(wb, "Modelo_Importacao.xlsx");
+        const utils = getUtils();
+        if(!utils) return showToast("Biblioteca XLSX não carregada.", "error");
+        const ws = utils.json_to_sheet(data);
+        const wb = window.XLSX.utils.book_new(); 
+        utils.book_append_sheet(wb, ws, "Modelo");
+        window.XLSX.writeFile(wb, "Modelo_Importacao.xlsx");
     };
 
     if (btnImport && inputImport) {
@@ -445,8 +555,8 @@ function setupExcelHandlers(db) {
             const reader = new FileReader();
             reader.onload = async (evt) => {
                 try {
-                    const wb = XLSX.read(evt.target.result, { type: 'binary', cellDates: true });
-                    const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); 
+                    const wb = window.XLSX.read(evt.target.result, { type: 'binary', cellDates: true });
+                    const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); 
                     const batch = writeBatch(db); let count = 0;
                     data.forEach(row => {
                         if(row['Descrição'] && row['Valor']) {
