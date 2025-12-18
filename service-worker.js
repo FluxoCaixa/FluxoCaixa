@@ -1,7 +1,6 @@
-const CACHE_NAME = 'fluxocaixa-v3'; // Mudei para v2 para forçar atualização
+const CACHE_NAME = 'fluxocaixa-v4'; // Mudei para v4 para garantir que ele pegue o novo arquivo de perfil
 
-// LISTA SEGURA: Apenas arquivos locais que temos CERTEZA que existem.
-// Removi os links https:// (CDNs) e os ícones para evitar o erro "Failed to fetch".
+// LISTA SEGURA: Adicionei o profile.js que criamos hoje
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,7 +12,8 @@ const ASSETS_TO_CACHE = [
   './js/modules/auth.js',
   './js/modules/calendar.js',
   './js/modules/dashboard.js',
-  './js/modules/finance.js'
+  './js/modules/finance.js',
+  './js/modules/profile.js' // <--- NOVO ARQUIVO IMPORTANTE
 ];
 
 // Instalação
@@ -21,8 +21,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        // Tenta adicionar os arquivos. Se um falhar, vamos ver no console quem foi,
-        // mas aqui forçamos o cache.addAll que é o padrão.
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .catch((err) => {
@@ -44,12 +42,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Interceptação de Rede (Estratégia: Cache First, falling back to Network)
+// Interceptação de Rede
 self.addEventListener('fetch', (event) => {
+  // Ignora requisições para o Firebase/Google (CDNs) para não dar erro de CORS no cache
+  if (event.request.url.includes('firebase') || event.request.url.includes('googleapis')) {
+    return; 
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Se achou no cache, retorna. Se não, busca na rede.
         return response || fetch(event.request);
       })
   );

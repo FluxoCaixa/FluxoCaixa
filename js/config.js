@@ -1,12 +1,11 @@
 /**
  * ARQUIVO: js/config.js
- * DESCRIÇÃO: Configuração do Firebase (Firestore + Auth).
+ * DESCRIÇÃO: Configuração Central do Firebase
  */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// ⚠️ SUBSTITUA PELAS SUAS CHAVES DO FIREBASE CONSOLE ⚠️
+// Suas chaves do projeto 'fluxocaixa-1e151'
 const firebaseConfig = {
   apiKey: "AIzaSyAB18o2ZfghwCzKNq3mGRBegr9ciiv9wGQ",
   authDomain: "fluxocaixa-1e151.firebaseapp.com",
@@ -16,15 +15,10 @@ const firebaseConfig = {
   appId: "1:1069184395564:web:f5faedcc28c72d00ec6489"
 };
 
-// Inicializa Firebase
+// Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
-
-// Inicializa Serviços
 const db = getFirestore(app);
-const auth = getAuth(app); // Serviço de Autenticação
-const provider = new GoogleAuthProvider(); // Provedor Google
 
-// Referência da Coleção (Nome da tabela no banco)
-const collectionRef = collection(db, "transacoes");
-
-export { db, auth, provider, collectionRef };
+// EXPORTAÇÃO CORRIGIDA:
+// Exportamos 'app' (para o auth.js usar) e 'db' (para o banco de dados)
+export { app, db };

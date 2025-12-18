@@ -31,12 +31,18 @@
     
     <div class="flex h-full flex-col md:flex-row relative">
         
-        <div class="w-full md:w-20 md:hover:w-64 bg-slate-950 border-r border-slate-800 transition-all duration-300 group z-30 flex flex-col shadow-2xl">
-            <div class="p-4 h-[72px] flex items-center justify-center border-b border-slate-800 shrink-0">
-                <div class="bg-emerald-600 p-2 rounded-lg shadow-lg shadow-emerald-900/20">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div id="sidebar" class="w-full md:w-20 md:hover:w-64 bg-slate-950 border-r border-slate-800 transition-all duration-300 group z-30 flex flex-col shadow-2xl h-[72px] md:h-full overflow-hidden shrink-0">
+            <div class="p-4 h-[72px] flex items-center justify-between md:justify-center border-b border-slate-800 shrink-0">
+                <div class="flex items-center">
+                    <div class="bg-emerald-600 p-2 rounded-lg shadow-lg shadow-emerald-900/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <span class="ml-3 font-bold text-xl md:hidden md:group-hover:block transition whitespace-nowrap text-white md:opacity-0 md:group-hover:opacity-100 duration-300">FluxoCaixa</span>
                 </div>
-                <span class="ml-3 font-bold text-xl md:hidden md:group-hover:block transition whitespace-nowrap text-white opacity-0 md:group-hover:opacity-100 duration-300">FluxoCaixa</span>
+
+                <button id="btn-mobile-menu" class="md:hidden text-slate-400 hover:text-white p-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
             </div>
 
             <nav class="flex-1 p-2 space-y-1 overflow-y-auto mt-2 custom-scrollbar">
@@ -55,7 +61,7 @@
                     <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Lançamentos</span>
                 </a>
 
-                <a href="#" data-page="perfil" class="nav-link flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white group/link">
+                <a href="#" data-page="perfil" class="nav-link flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white group/link hidden">
                     <svg class="w-6 h-6 flex-shrink-0 group-hover/link:text-amber-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     <span class="md:hidden md:group-hover:block whitespace-nowrap font-medium text-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">Meu Perfil</span>
                 </a>
@@ -163,15 +169,23 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Balanço Wellington</h4>
-                            <div class="h-64 relative"><canvas id="chartBalanceWellington"></canvas></div>
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Receitas vs Despesas
+                            </h4>
+                            <div class="h-64 relative"><canvas id="chartIncomeExpense"></canvas></div>
                         </div>
+                        
                         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-pink-500"></span> Balanço Eryka</h4>
-                            <div class="h-64 relative"><canvas id="chartBalanceEryka"></canvas></div>
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Evolução do Saldo
+                            </h4>
+                            <div class="h-64 relative"><canvas id="chartBalanceEvolution"></canvas></div>
                         </div>
+                        
                         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                            <h4 class="font-bold text-white mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Destino das Despesas</h4>
+                            <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span> Top Despesas
+                            </h4>
                             <div class="h-64 relative"><canvas id="chartExpenseCat"></canvas></div>
                         </div>
                     </div>
@@ -210,6 +224,12 @@
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     Concluir (<span id="bulk-count">0</span>)
                                 </button>
+                                
+                                <button id="btn-bulk-pending" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-amber-900/20 transition flex items-center gap-2 text-sm animate-pulse">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Pendente
+                                </button>
+
                                 <button id="btn-bulk-delete" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg shadow-rose-900/20 transition flex items-center gap-2 text-sm animate-pulse">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Excluir
@@ -240,19 +260,27 @@
                                 <thead class="bg-slate-950 text-slate-400 font-medium uppercase text-xs">
                                     <tr>
                                         <th class="px-4 py-3 pb-2 w-10 text-center"><input type="checkbox" id="check-all-rows" class="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-0 cursor-pointer accent-indigo-500 bg-slate-800"></th>
+                                        
                                         <th class="px-6 py-3 pb-2 text-left cursor-pointer hover:text-white transition group sort-header select-none" data-col="date">Data <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        
                                         <th class="px-6 py-3 pb-2 text-left cursor-pointer hover:text-white transition group sort-header select-none" data-col="description">Descrição <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        
                                         <th class="px-6 py-3 pb-2 text-left cursor-pointer hover:text-white transition group sort-header select-none" data-col="category">Categoria <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        
                                         <th class="px-6 py-3 pb-2 text-right cursor-pointer hover:text-white transition group sort-header select-none" data-col="value">Valor <span class="sort-icon text-slate-600 group-hover:text-slate-400">⇅</span></th>
+                                        
+                                        <th class="px-6 py-3 pb-2 text-center">Status</th>
+                                        
                                         <th class="px-6 py-3 pb-2 text-right">Ações</th>
                                     </tr>
+
                                     <tr class="border-b border-slate-700 bg-slate-900/50">
                                         <th class="px-4 py-2"></th>
                                         <th class="px-6 py-2"><div class="relative w-full"><input type="date" id="filter-date" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case [color-scheme:dark] placeholder-slate-500"><button id="btn-clean-filter-date" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
                                         <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-desc" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500" placeholder="Buscar..."><button id="btn-clean-filter-desc" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
                                         <th class="px-6 py-2"><div class="relative w-full"><input type="text" id="filter-cat" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 pr-7 text-xs text-white w-full outline-none focus:border-emerald-500 font-normal normal-case placeholder-slate-500" placeholder="Buscar..."><button id="btn-clean-filter-cat" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 rounded-full transition" title="Limpar"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></th>
                                         <th class="px-6 py-2"></th>
-                                        <th class="px-6 py-2 text-right"><button id="btn-clear-filters" class="text-[10px] text-indigo-400 hover:text-white underline cursor-pointer font-normal normal-case whitespace-nowrap transition">Limpar Tudo</button></th>
+                                        <th class="px-6 py-2"></th> <th class="px-6 py-2 text-right"><button id="btn-clear-filters" class="text-[10px] text-indigo-400 hover:text-white underline cursor-pointer font-normal normal-case whitespace-nowrap transition">Limpar Tudo</button></th>
                                     </tr>
                                 </thead>
                                 <tbody id="transactions-tbody" class="divide-y divide-slate-700 text-slate-300"><tr><td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">Carregando...</td></tr></tbody>
@@ -269,12 +297,17 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         
-                        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                        <div id="family-section" class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg hidden">
                             <div class="flex items-center gap-4 mb-6">
-                                <img id="profile-pic" src="" alt="Avatar" class="w-16 h-16 rounded-full border-2 border-emerald-500 shadow-lg">
+                                <img id="profile-pic" 
+                                     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.602-7.812-1.7a.75.75 0 01-.437-.695z' clip-rule='evenodd' /%3E%3C/svg%3E" 
+                                     alt="Perfil" 
+                                     class="w-16 h-16 rounded-full border-2 border-slate-600 p-2 shadow-lg bg-slate-800 transition-all duration-300">
                                 <div>
-                                    <h2 id="profile-name" class="text-xl font-bold text-white">Carregando...</h2>
-                                    <p id="profile-email" class="text-sm text-slate-400">...</p>
+                                    <h2 id="profile-name" class="text-xl font-bold text-white">Olá, Visitante!</h2>
+                                    <p id="profile-email" class="text-sm text-slate-400 flex items-center gap-1">
+                                        <span class="w-2 h-2 bg-slate-500 rounded-full animate-pulse"></span> Conecte-se...
+                                    </p>
                                 </div>
                             </div>
                             
@@ -295,7 +328,7 @@
                             <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Adicionar pessoa ao meu grupo</label>
                                 <div class="flex gap-2">
-                                    <input type="email" id="invite-email" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="email.do.colega@gmail.com">
+                                    <input type="email" id="invite-email" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="email@email.com">
                                     <button id="btn-send-invite" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded font-bold text-sm transition">Convidar</button>
                                 </div>
                             </div>
@@ -319,34 +352,76 @@
         </div>
     </div>
 
-    <div id="modal-transaction" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
-        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border border-slate-700 transform transition-all scale-100 flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2 sticky top-0 bg-slate-800 z-10 pb-2 border-b border-slate-700">
-                <div class="p-2 bg-emerald-500/10 rounded-lg"><svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-                Transação Financeira
-            </h2>
-            <form id="form-transaction" class="space-y-5">
-                <input type="hidden" id="form-id">
-                <div class="flex gap-4 p-1 bg-slate-900 rounded-lg border border-slate-700">
-                    <label class="flex-1 cursor-pointer p-2.5 rounded text-center transition hover:bg-slate-800 has-[:checked]:bg-emerald-900/30 has-[:checked]:text-emerald-400 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500/50"><input type="radio" name="tipo" value="receita" class="hidden" required><span class="font-bold text-sm uppercase">Receita</span></label>
-                    <label class="flex-1 cursor-pointer p-2.5 rounded text-center transition hover:bg-slate-800 has-[:checked]:bg-rose-900/30 has-[:checked]:text-rose-400 has-[:checked]:ring-1 has-[:checked]:ring-rose-500/50"><input type="radio" name="tipo" value="despesa" class="hidden"><span class="font-bold text-sm uppercase">Despesa</span></label>
-                </div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Descrição</label><input type="text" id="form-desc" list="list-desc" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition placeholder-slate-600" placeholder="Ex: Salário, Aluguel..." required autocomplete="off"><datalist id="list-desc"></datalist></div>
+    <div id="modal-transaction" class="fixed inset-0 bg-slate-950/90 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-900 p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700 relative">
+            
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <span class="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </span>
+                    Transação Financeira
+                </h3>
+                <button id="btn-cancel-trans" class="text-slate-400 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form id="form-transaction" class="space-y-4">
+                
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Valor (R$)</label><input type="number" step="0.01" id="form-valor" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition font-mono" placeholder="0.00" required></div>
-                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Data</label><input type="date" id="form-data" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition [color-scheme:dark]" required></div>
+                    <div>
+                        <input type="radio" name="tipo" value="receita" id="type-rec" class="peer hidden" checked>
+                        <label for="type-rec" class="block text-center p-3 rounded-xl border border-slate-700 cursor-pointer transition peer-checked:bg-emerald-600 peer-checked:border-emerald-500 peer-checked:text-white text-slate-400 hover:bg-slate-800 font-bold hover:border-slate-500">
+                            RECEITA
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="tipo" value="despesa" id="type-desp" class="peer hidden">
+                        <label for="type-desp" class="block text-center p-3 rounded-xl border border-slate-700 cursor-pointer transition peer-checked:bg-rose-600 peer-checked:border-rose-500 peer-checked:text-white text-slate-400 hover:bg-slate-800 font-bold hover:border-slate-500">
+                            DESPESA
+                        </label>
+                    </div>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Descrição</label>
+                    <input type="text" id="form-desc" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition" placeholder="Ex: Compras Supermercado" required>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Categoria</label><input type="text" id="form-categoria" list="list-cat" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition" placeholder="Selecionar..." required autocomplete="off"><datalist id="list-cat"></datalist></div>
-                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Responsável</label><input type="text" id="form-resp" list="list-resp" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition" placeholder="Quem?" autocomplete="off"><datalist id="list-resp"></datalist></div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Valor (R$)</label>
+                        <input type="number" step="0.01" id="form-valor" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition font-mono font-bold" placeholder="0.00" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Data</label>
+                        <input type="date" id="form-data" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition [color-scheme:dark]" required>
+                    </div>
                 </div>
-                <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:border-slate-500 transition" onclick="document.getElementById('form-status').click()">
-                    <div class="flex items-center gap-3"><input type="checkbox" id="form-status" class="w-5 h-5 rounded border-slate-600 text-emerald-600 focus:ring-0 cursor-pointer accent-emerald-500 bg-slate-800"><label for="form-status" class="text-sm font-bold text-slate-300 cursor-pointer select-none">Lançamento Consolidado?</label></div><span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider bg-slate-800 px-2 py-1 rounded">Pago / Recebido</span>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Categoria</label>
+                        <input type="text" id="form-categoria" list="list-cat" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition text-sm" placeholder="Ex: Alimentação" required>
+                        <datalist id="list-cat">
+                            <option value="Moradia"></option><option value="Alimentação"></option><option value="Transporte"></option><option value="Lazer"></option><option value="Salário"></option>
+                        </datalist>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Responsável</label>
+                        <input type="text" id="form-resp" list="list-resp" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition text-sm" placeholder="Opcional">
+                    </div>
                 </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-700 mt-2 sticky bottom-0 bg-slate-800 pb-2">
-                    <button type="button" id="btn-cancel-trans" class="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 font-medium transition text-sm">Cancelar</button>
-                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition text-sm active:scale-95">Salvar</button>
+
+                <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 flex items-center gap-3">
+                    <input type="checkbox" id="form-status" class="w-5 h-5 rounded border-slate-600 text-emerald-600 focus:ring-0 cursor-pointer bg-slate-700">
+                    <label for="form-status" class="text-sm text-slate-300 cursor-pointer select-none">Já foi Pago / Recebido?</label>
                 </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-900/20 transition active:scale-95 mt-2">
+                    Salvar Lançamento
+                </button>
             </form>
         </div>
     </div>
@@ -365,20 +440,19 @@
     <div id="login-modal" class="fixed inset-0 bg-slate-950/90 flex items-center justify-center hidden z-[60] backdrop-blur-sm transition-opacity p-4">
         <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-700">
             <div class="text-center mb-8">
-                <div class="bg-emerald-600 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/20"><svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div>
-                <h2 class="text-2xl font-bold text-white tracking-tight">Acesso Restrito</h2>
-                <p class="text-slate-400 text-sm mt-2">Entre com suas credenciais.</p>
+                <div class="bg-emerald-600 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/20">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight">Bem-vindo</h2>
+                <p class="text-slate-400 text-sm mt-2">Entre para sincronizar suas finanças.</p>
             </div>
-            <form id="login-form" class="space-y-4">
-                <button type="button" id="btn-login-google" class="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-3 mb-4 active:scale-95">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="G"> Entrar com Google
-                </button>
-                <div class="relative flex py-1 items-center"><div class="flex-grow border-t border-slate-600"></div><span class="flex-shrink-0 mx-4 text-slate-500 text-xs uppercase font-bold">Ou via E-mail</span><div class="flex-grow border-t border-slate-600"></div></div>
-                <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase ml-1">E-mail</label><input type="email" id="login-email" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition placeholder-slate-600" placeholder="seu@email.com"></div>
-                <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase ml-1">Senha</label><input type="password" id="login-pass" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 outline-none transition placeholder-slate-600" placeholder="••••••••"></div>
-                <button type="submit" id="btn-perform-login" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg shadow-lg transition active:scale-95 mt-2">Entrar</button>
-            </form>
-            <button id="btn-close-login" class="w-full mt-6 text-slate-500 hover:text-emerald-400 text-sm transition font-medium">Cancelar / Voltar</button>
+            
+            <button id="btn-login-google" class="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3.5 rounded-lg shadow-lg transition flex items-center justify-center gap-3 active:scale-95 group">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6" alt="G">
+                <span>Continuar com Google</span>
+            </button>
+
+            <button id="btn-close-login" class="w-full mt-6 text-slate-600 hover:text-slate-400 text-xs font-bold uppercase tracking-wider transition">Cancelar</button>
         </div>
     </div>
 
@@ -406,45 +480,147 @@
         </div>
     </div>
 
-    <div id="modal-recurring" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
-        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl border border-slate-700 flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                <div><h2 class="text-xl font-bold text-white flex items-center gap-2"><svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Contas Fixas & Recorrentes</h2><p class="text-xs text-slate-400 mt-1">Cadastre seus modelos e gere lançamentos em massa.</p></div>
-                <button id="btn-close-recurring" class="text-slate-400 hover:text-white transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    <div id="modal-recurring" class="fixed inset-0 bg-slate-950/90 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-700 flex flex-col max-h-[90vh] overflow-hidden">
+            
+            <div class="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-800/50">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                        <div class="p-2 bg-purple-500/20 rounded-lg text-purple-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </div>
+                        Contas Fixas & Modelos
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1 ml-1">Crie modelos (ex: Aluguel) e gere vários lançamentos de uma vez.</p>
+                </div>
+                <button id="btn-close-recurring" class="text-slate-400 hover:text-white transition p-2 hover:bg-slate-700 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
             
-            <form id="form-add-recurring" class="bg-slate-900/50 p-4 rounded-lg border border-slate-700 mb-6 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div class="md:col-span-4"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Descrição</label><input type="text" id="rec-desc" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="Ex: Aluguel" required></div>
-                <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Valor</label><input type="number" step="0.01" id="rec-val" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="0.00" required></div>
-                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Categoria</label><input type="text" id="rec-cat" list="list-cat" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="Ex: Moradia" required></div>
-                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Responsável</label><input type="text" id="rec-resp" list="list-resp" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500" placeholder="Ex: Wellington"></div>
-                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Tipo</label><select id="rec-type" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
-                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Frequência</label><select id="rec-freq" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500"><option value="mensal">Mensal (Mesmo dia)</option><option value="semanal">Semanal (7 dias)</option><option value="unica">Uma vez só</option></select></div>
-                <div class="md:col-span-3"><label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Repetições (Qtd)</label><input type="number" id="rec-times" value="1" min="1" max="60" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none focus:border-purple-500"></div>
-                <div class="md:col-span-3"><button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded font-bold shadow transition h-[38px] flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Adicionar</button></div>
-            </form>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                
+                <form id="form-add-recurring" class="bg-slate-800 p-5 rounded-xl border border-slate-700 mb-8 shadow-sm">
+                    <h3 class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                        Novo Modelo
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
+                        <div class="md:col-span-8">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Descrição</label>
+                            <input type="text" id="rec-desc" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition" placeholder="Ex: Aluguel do Apartamento" required>
+                        </div>
+                        <div class="md:col-span-4">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Valor (R$)</label>
+                            <input type="number" step="0.01" id="rec-val" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition font-mono font-bold" placeholder="0.00" required>
+                        </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-900 rounded-lg border border-slate-700 relative">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-950 text-slate-400 font-medium uppercase text-xs sticky top-0">
-                        <tr>
-                            <th class="px-4 py-2">Descrição / Detalhes</th>
-                            <th class="px-4 py-2 text-center">Regra</th>
-                            <th class="px-4 py-2 text-right">Valor</th>
-                            <th class="px-4 py-2 text-right w-16">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recurring-list-body" class="divide-y divide-slate-800 text-slate-300"></tbody>
-                </table>
+                        <div class="md:col-span-4">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Categoria</label>
+                            <input type="text" id="rec-cat" list="list-cat" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition" placeholder="Ex: Moradia" required>
+                        </div>
+                        <div class="md:col-span-4">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Responsável</label>
+                            <input type="text" id="rec-resp" list="list-resp" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition" placeholder="Opcional">
+                        </div>
+                        <div class="md:col-span-4">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Tipo</label>
+                            <select id="rec-type" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition cursor-pointer">
+                                <option value="despesa">🔴 Despesa</option>
+                                <option value="receita">🟢 Receita</option>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-12 border-t border-slate-700 my-2"></div>
+
+                        <div class="md:col-span-6">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Frequência</label>
+                            <select id="rec-freq" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition cursor-pointer">
+                                <option value="mensal">Mensal (Mesmo dia todo mês)</option>
+                                <option value="quinzenal">Quinzenal (A cada 15 dias)</option>
+                                <option value="semanal">Semanal (A cada 7 dias)</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Repetições</label>
+                            <div class="relative">
+                                <input type="number" id="rec-times" value="1" min="1" max="60" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-purple-500 text-center font-bold">
+                                <span class="absolute right-8 top-2.5 text-slate-500 text-xs pointer-events-none">x</span>
+                            </div>
+                        </div>
+                        <div class="md:col-span-3 flex items-end">
+                            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-purple-900/20 transition flex items-center justify-center gap-2 active:scale-95 border border-purple-500">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Salvar Modelo
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">Seus Modelos Salvos</h3>
+                    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-950 text-slate-400 font-medium uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="px-4 py-3">Descrição</th>
+                                    <th class="px-4 py-3 text-center">Regra</th>
+                                    <th class="px-4 py-3 text-right">Valor Base</th>
+                                    <th class="px-4 py-3 text-right w-16">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recurring-list-body" class="divide-y divide-slate-700/50 text-slate-300">
+                                <tr><td colspan="4" class="p-6 text-center text-slate-500 text-sm italic">Nenhum modelo cadastrado ainda.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             
-            <div class="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
-                <div class="flex items-center gap-2"><span class="text-sm text-slate-400">Início dos lançamentos:</span><input type="date" id="rec-generate-date" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm [color-scheme:dark]"></div>
-                <button id="btn-generate-recurring" class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition text-sm active:scale-95 flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg> Gerar Lançamentos</button>
+            <div class="p-4 bg-slate-800 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+                <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                    <span class="text-sm font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Data de Início:
+                    </span>
+                    <input type="date" id="rec-generate-date" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-emerald-500 [color-scheme:dark] w-full md:w-auto shadow-inner">
+                </div>
+                
+                <button id="btn-generate-recurring" class="w-full md:w-auto px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center justify-center gap-2 border border-emerald-500/50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                    Gerar Lançamentos
+                </button>
             </div>
         </div>
     </div>
+    <div id="modal-day-details" class="fixed inset-0 bg-slate-950/90 hidden z-[70] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 flex flex-col max-h-[85vh] overflow-hidden animate-fade-in">
+            
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <div>
+                    <h3 id="day-detail-title" class="text-lg font-bold text-white capitalize">Detalhes do Dia</h3>
+                    <div class="flex gap-4 mt-1 text-xs">
+                        <span class="text-emerald-400 font-medium">Ent: <span id="day-detail-in">R$ 0,00</span></span>
+                        <span class="text-rose-400 font-medium">Sai: <span id="day-detail-out">R$ 0,00</span></span>
+                    </div>
+                </div>
+                <button id="btn-close-day-details" class="text-slate-400 hover:text-white transition bg-slate-800 hover:bg-slate-700 p-2 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <div id="day-detail-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-[300px] bg-slate-900">
+                </div>
 
+            <div class="p-4 bg-slate-950 border-t border-slate-800">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo em Caixa (Acumulado)</span>
+                    <span id="day-detail-bal" class="text-xl font-bold text-white font-mono">R$ 0,00</span>
+                </div>
+            </div>
+        </div>
+    </div>
     <script type="module" src="./js/app.js"></script>
 </body>
 </html>

@@ -1,342 +1,334 @@
 /**
  * ARQUIVO: js/modules/dashboard.js
- * DESCRIÇÃO: Dashboard Financeiro + Sistema de Metas (Com proteção contra erro de cache).
+ * DESCRIÇÃO: Dashboard com Importação Automática de Gráficos (RESOLVIDO)
  */
-import 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { db } from '../config.js'; 
-import { safeBind, showToast } from '../utils.js';
 
-const Chart = window.Chart;
+// --- IMPORTAÇÃO DIRETA DA BIBLIOTECA DE GRÁFICOS ---
+import { Chart, registerables } from 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
+
+// Registra os componentes necessários para desenhar
+Chart.register(...registerables);
+
+let dashboardChartFlow = null;
+let dashboardChartPie = null;
+let dashboardChartBar = null;
+let dashboardChartLine = null;
 
 // Estado
-let charts = { flow: null, expCat: null, resp: null, balW: null, balE: null };
-let currentViewMode = 'forecast';
-let lastReceivedData = []; 
-let userGoals = {}; 
+let viewMode = 'real'; // 'real' ou 'forecast'
+let allDataCache = [];
+let userGoals = JSON.parse(localStorage.getItem('fluxo_goals')) || {};
 
 export function initDashboard() {
-    const filter = document.getElementById('dash-month-filter');
-    if(filter) {
-        filter.value = new Date().toISOString().slice(0, 7); 
-        filter.addEventListener('change', () => refreshView());
-    }
-
-    const btnReal = document.getElementById('btn-view-real');
-    const btnForecast = document.getElementById('btn-view-forecast');
-
-    if(btnReal && btnForecast) {
-        btnReal.addEventListener('click', () => setViewMode('real'));
-        btnForecast.addEventListener('click', () => setViewMode('forecast'));
-    }
-
-    // Metas
-    loadGoalsFromFirebase();
-    safeBind('btn-open-goals', 'click', openGoalsModal);
-    safeBind('btn-close-goals', 'click', () => document.getElementById('modal-goals').classList.add('hidden'));
-    safeBind('btn-save-goals', 'click', saveGoalsToFirebase);
+    setupDashboardControls();
 }
 
-export function updateDashboardData(allData) {
-    lastReceivedData = allData;
-    refreshView();
+export function updateDashboard(transactions) {
+    console.log("📊 Dashboard: Recebidos", transactions.length, "itens.");
+    allDataCache = transactions;
+    renderDashboard();
 }
 
-function setViewMode(mode) {
-    currentViewMode = mode;
+function setupDashboardControls() {
     const btnReal = document.getElementById('btn-view-real');
     const btnForecast = document.getElementById('btn-view-forecast');
+    const btnGoals = document.getElementById('btn-open-goals');
+    const monthFilter = document.getElementById('dash-month-filter');
+
+    // Define mês atual se estiver vazio
+    if (monthFilter && !monthFilter.value) {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        monthFilter.value = `${yyyy}-${mm}`;
+    }
+
+    if (btnReal && btnForecast) {
+        btnReal.onclick = () => switchMode('real');
+        btnForecast.onclick = () => switchMode('forecast');
+    }
+
+    if (monthFilter) {
+        monthFilter.addEventListener('change', () => renderDashboard());
+    }
+
+    if (btnGoals) btnGoals.onclick = openGoalsModal;
     
-    // Proteção se os botões ainda não existirem no HTML cacheado
-    if (!btnReal || !btnForecast) return;
+    // Botões do Modal
+    const btnSave = document.getElementById('btn-save-goals');
+    const btnClose = document.getElementById('btn-close-goals');
+    if(btnSave) btnSave.onclick = saveGoals;
+    if(btnClose) btnClose.onclick = () => document.getElementById('modal-goals').classList.add('hidden');
+}
 
-    const activeClass = "bg-indigo-600 text-white shadow-lg ring-1 ring-indigo-500";
-    const inactiveClass = "text-slate-400 hover:text-white bg-transparent shadow-none ring-0";
+function switchMode(mode) {
+    console.log("🔄 Trocando modo para:", mode);
+    viewMode = mode;
+    const btnReal = document.getElementById('btn-view-real');
+    const btnForecast = document.getElementById('btn-view-forecast');
+
+    const active = ['bg-indigo-600', 'text-white', 'shadow-lg', 'ring-1', 'ring-indigo-500'];
+    const inactive = ['text-slate-400', 'hover:text-white', 'bg-slate-800'];
 
     if (mode === 'real') {
-        btnReal.className = `px-4 py-2 rounded text-xs font-bold transition ${activeClass}`;
-        btnForecast.className = `px-4 py-2 rounded text-xs font-bold transition ${inactiveClass}`;
+        btnReal.classList.add(...active);
+        btnReal.classList.remove('text-slate-400', 'bg-slate-800');
+        
+        btnForecast.classList.remove(...active);
+        btnForecast.classList.add(...inactive);
     } else {
-        btnReal.className = `px-4 py-2 rounded text-xs font-bold transition ${inactiveClass}`;
-        btnForecast.className = `px-4 py-2 rounded text-xs font-bold transition ${activeClass}`;
+        btnForecast.classList.add(...active);
+        btnForecast.classList.remove('text-slate-400', 'bg-slate-800');
+
+        btnReal.classList.remove(...active);
+        btnReal.classList.add(...inactive);
     }
-    refreshView();
+
+    renderDashboard();
 }
 
-function refreshView() {
-    if (!lastReceivedData) return;
-    const filterEl = document.getElementById('dash-month-filter');
-    if (!filterEl) return; // Proteção extra
+function renderDashboard() {
+    const monthFilter = document.getElementById('dash-month-filter');
+    const selectedMonth = monthFilter ? monthFilter.value : null;
 
-    const monthInput = filterEl.value;
-    
-    let filtered = lastReceivedData.filter(d => d.date.startsWith(monthInput));
-    if (currentViewMode === 'real') {
-        filtered = filtered.filter(d => d.status === true);
-    }
-    processAndRender(filtered);
-}
+    // 1. FILTRAGEM
+    let filteredData = allDataCache.filter(t => {
+        if (!t.date || t.date === 'Invalid Date') return false;
 
-function processAndRender(data) {
-    let receita = 0, despesa = 0;
-    const catDespesas = {};
-    const respDespesas = {};
-    const balancoWellington = { entradas: 0, saidas: 0 };
-    const balancoEryka = { entradas: 0, saidas: 0 };
-
-    data.forEach(d => {
-        const val = d.value;
-        const resp = (d.responsibility || "").toUpperCase();
+        // Filtro Mês
+        if (selectedMonth && !t.date.startsWith(selectedMonth)) return false;
         
-        if (d.type === 'receita') {
-            receita += val;
+        // Filtro Status
+        const isPaid = t.status === true || t.status === 'true' || t.status === 'Pago';
+
+        if (viewMode === 'real') {
+            return isPaid; 
         } else {
-            despesa += val;
-            catDespesas[d.category || 'OUTROS'] = (catDespesas[d.category || 'OUTROS'] || 0) + val;
-            respDespesas[d.responsibility || 'GERAL'] = (respDespesas[d.responsibility || 'GERAL'] || 0) + val;
+            return true; // Previsão pega tudo
         }
+    });
 
-        const isShared = ["PARTILHADO", "COMPARTILHADO", "AMBOS", "CASAL", "DIVIDIDO"].some(term => resp.includes(term));
-        
-        if (isShared) {
-            const half = val / 2;
-            if (d.type === 'receita') { balancoWellington.entradas += half; balancoEryka.entradas += half; } 
-            else { balancoWellington.saidas += half; balancoEryka.saidas += half; }
-        } else {
-            if (resp.includes("WELLINGTON")) {
-                if (d.type === 'receita') balancoWellington.entradas += val; else balancoWellington.saidas += val;
-            } else if (resp.includes("ERYKA") || resp.includes("ERICA")) {
-                if (d.type === 'receita') balancoEryka.entradas += val; else balancoEryka.saidas += val;
+    console.log(`🔍 Modo: ${viewMode.toUpperCase()} | Itens filtrados: ${filteredData.length}`);
+
+    // 2. CÁLCULOS KPI
+    let totalReceitas = 0;
+    let totalDespesas = 0;
+
+    filteredData.forEach(t => {
+        const val = Number(t.value) || 0;
+        // Verifica variações de escrita para receita
+        if (t.type === 'receita' || t.type === 'ENTRADA') totalReceitas += val;
+        else totalDespesas += val;
+    });
+
+    const saldo = totalReceitas - totalDespesas;
+
+    animateValue("kpi-receitas", totalReceitas);
+    animateValue("kpi-despesas", totalDespesas);
+    animateValue("kpi-saldo", saldo);
+    updateHealthBar(totalReceitas, totalDespesas);
+    
+    renderGoalsSection(filteredData);
+    
+    // Chama os gráficos (agora com a biblioteca garantida)
+    updateCharts(filteredData, selectedMonth);
+}
+
+// --- GRÁFICOS ---
+function updateCharts(data, selectedMonth) {
+    // Destrói gráficos antigos
+    if (dashboardChartFlow) { dashboardChartFlow.destroy(); }
+    if (dashboardChartPie) { dashboardChartPie.destroy(); }
+    if (dashboardChartBar) { dashboardChartBar.destroy(); }
+    if (dashboardChartLine) { dashboardChartLine.destroy(); }
+
+    // Configuração dos Dias
+    const year = selectedMonth ? parseInt(selectedMonth.split('-')[0]) : new Date().getFullYear();
+    const month = selectedMonth ? parseInt(selectedMonth.split('-')[1]) : new Date().getMonth() + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const daily = {};
+    for(let i=1; i<=daysInMonth; i++) daily[i] = { r: 0, d: 0 };
+
+    data.forEach(t => {
+        const parts = t.date.split('-');
+        if (parts.length === 3) {
+            const d = parseInt(parts[2]);
+            const val = Number(t.value) || 0;
+            if (daily[d]) {
+                if (t.type === 'receita' || t.type === 'ENTRADA') daily[d].r += val;
+                else daily[d].d += val;
             }
         }
     });
 
-    updateKPIs(receita, despesa);
-    updateHealthBar(receita, despesa);
-    
-    renderFlowChart(data);
-    renderDoughnutChart('chartExpenseCat', catDespesas, 'expCat', ['#f43f5e', '#fbbf24', '#8b5cf6', '#3b82f6', '#ec4899']);
-    renderPersonBalance('chartBalanceWellington', balancoWellington, 'balW', '#3b82f6');
-    renderPersonBalance('chartBalanceEryka', balancoEryka, 'balE', '#ec4899');
-    
-    renderGoalsProgress(catDespesas);
-}
+    const labels = Object.keys(daily);
+    const dataRec = labels.map(d => daily[d].r);
+    const dataDesp = labels.map(d => daily[d].d * -1);
 
-// =========================================================
-// LÓGICA DE METAS (Com Proteção de DOM)
-// =========================================================
+    const colorRec = viewMode === 'real' ? '#10b981' : '#34d399'; 
+    const colorDesp = viewMode === 'real' ? '#f43f5e' : '#fb7185'; 
 
-async function loadGoalsFromFirebase() {
-    try {
-        const docRef = doc(db, "settings", "goals");
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            userGoals = docSnap.data();
-            refreshView(); 
-        }
-    } catch (e) {
-        console.warn("Sem metas salvas/Erro loadGoals:", e);
+    // 1. Gráfico Fluxo
+    const ctxFlow = document.getElementById('chartFlow');
+    if (ctxFlow) {
+        dashboardChartFlow = new Chart(ctxFlow, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Entradas', data: dataRec, backgroundColor: colorRec, borderRadius: 3 },
+                    { label: 'Saídas', data: dataDesp, backgroundColor: colorDesp, borderRadius: 3 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { x: { display: false }, y: { display: false } },
+                plugins: { legend: { display: false } }
+            }
+        });
     }
-}
 
-async function saveGoalsToFirebase() {
-    const inputs = document.querySelectorAll('.goal-input');
-    const newGoals = {};
-    inputs.forEach(input => {
-        const val = parseFloat(input.value);
-        if (val > 0) newGoals[input.dataset.cat] = val;
+    // 2. Pizza
+    let sumR = 0, sumD = 0;
+    data.forEach(t => {
+        const val = Number(t.value);
+        if (t.type === 'receita' || t.type === 'ENTRADA') sumR += val; else sumD += val;
     });
 
-    try {
-        await setDoc(doc(db, "settings", "goals"), newGoals);
-        userGoals = newGoals;
-        showToast("Metas salvas!");
-        document.getElementById('modal-goals').classList.add('hidden');
-        refreshView();
-    } catch (e) {
-        console.error(e);
-        showToast("Erro ao salvar.", "error");
+    const ctxPie = document.getElementById('chartIncomeExpense');
+    if (ctxPie) {
+        dashboardChartPie = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['Entrada', 'Saída'],
+                datasets: [{ data: [sumR, sumD], backgroundColor: ['#6366f1', '#f43f5e'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+        });
     }
+
+    // 3. Categorias
+    const cats = {};
+    data.filter(t => t.type !== 'receita' && t.type !== 'ENTRADA').forEach(t => {
+        cats[t.category] = (cats[t.category] || 0) + Number(t.value);
+    });
+    const sortedCats = Object.entries(cats).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+    const ctxBar = document.getElementById('chartExpenseCat');
+    if (ctxBar) {
+        dashboardChartBar = new Chart(ctxBar, {
+            type: 'doughnut',
+            data: {
+                labels: sortedCats.map(x=>x[0]),
+                datasets: [{ 
+                    data: sortedCats.map(x=>x[1]), 
+                    backgroundColor: ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6'], 
+                    borderWidth: 0 
+                }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font:{size:10}, boxWidth: 10 } } } 
+            }
+        });
+    }
+
+    // 4. Saldo
+    let acc = 0;
+    const lineData = labels.map(d => {
+        acc += (daily[d].r - daily[d].d);
+        return acc;
+    });
+
+    const ctxLine = document.getElementById('chartBalanceEvolution');
+    if (ctxLine) {
+        dashboardChartLine = new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Saldo',
+                    data: lineData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { x: { display: false }, y: { display: false } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+}
+
+// --- UTILITÁRIOS ---
+function animateValue(id, val) {
+    const el = document.getElementById(id);
+    if(el) {
+        el.innerText = val.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+        if(id === 'kpi-saldo') el.className = `text-3xl font-bold mt-2 tracking-tight blur-sensitive ${val >= 0 ? 'text-white' : 'text-rose-500'}`;
+    }
+}
+
+function updateHealthBar(rec, desp) {
+    const bar = document.getElementById('health-bar');
+    const text = document.getElementById('health-text');
+    if(!bar) return;
+    if(rec === 0) { bar.style.width='0%'; text.innerText="Sem receitas"; return; }
+    const pct = Math.min((desp/rec)*100, 100);
+    bar.style.width = `${pct}%`;
+    if(pct > 90) { bar.className = "h-full bg-rose-600"; text.innerText = Math.round(pct)+"% (Crítico)"; }
+    else if(pct > 70) { bar.className = "h-full bg-amber-500"; text.innerText = Math.round(pct)+"% (Atenção)"; }
+    else { bar.className = "h-full bg-emerald-500"; text.innerText = Math.round(pct)+"% (Saudável)"; }
 }
 
 function openGoalsModal() {
+    const modal = document.getElementById('modal-goals');
     const container = document.getElementById('goals-inputs-container');
-    if (!container) return; // Proteção
-
+    if(!modal || !container) return;
+    const cats = [...new Set(allDataCache.filter(t => t.type !== 'receita' && t.type !== 'ENTRADA').map(t => t.category))].sort();
     container.innerHTML = '';
-    const allCategories = new Set();
-    lastReceivedData.forEach(d => {
-        if(d.type === 'despesa' && d.category) allCategories.add(d.category);
-    });
-    Object.keys(userGoals).forEach(c => allCategories.add(c));
-
-    const sortedCats = Array.from(allCategories).sort();
-
-    if (sortedCats.length === 0) {
-        container.innerHTML = '<p class="text-slate-500 text-center text-xs">Adicione despesas primeiro para gerar categorias.</p>';
-    }
-
-    sortedCats.forEach(cat => {
-        const currentGoal = userGoals[cat] || '';
+    if(cats.length === 0) container.innerHTML = '<p class="text-slate-500 text-center text-sm">Sem dados para metas.</p>';
+    cats.forEach(cat => {
+        const val = userGoals[cat] || '';
         const div = document.createElement('div');
-        div.className = "flex items-center gap-4 bg-slate-900/50 p-2 rounded border border-slate-700";
-        div.innerHTML = `
-            <div class="flex-1 font-bold text-slate-300 text-xs uppercase">${cat}</div>
-            <div class="w-32">
-                <input type="number" step="10" placeholder="R$" 
-                       class="goal-input w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-right outline-none focus:border-emerald-500 text-sm" 
-                       data-cat="${cat}" value="${currentGoal}">
-            </div>
-        `;
+        div.className = "flex items-center justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-700";
+        div.innerHTML = `<span class="text-sm text-white font-medium uppercase">${cat}</span><div class="flex items-center gap-2"><span class="text-slate-500 text-xs">R$</span><input type="number" class="goal-input w-24 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-right outline-none focus:border-emerald-500" data-cat="${cat}" value="${val}"></div>`;
         container.appendChild(div);
     });
-
-    const modal = document.getElementById('modal-goals');
-    if(modal) modal.classList.remove('hidden');
+    modal.classList.remove('hidden');
 }
 
-function renderGoalsProgress(currentExpenses) {
+function saveGoals() {
+    const inputs = document.querySelectorAll('.goal-input');
+    userGoals = {};
+    inputs.forEach(i => { if(i.value > 0) userGoals[i.dataset.cat] = parseFloat(i.value); });
+    localStorage.setItem('fluxo_goals', JSON.stringify(userGoals));
+    document.getElementById('modal-goals').classList.add('hidden');
+    renderDashboard();
+}
+
+function renderGoalsSection(data) {
     const section = document.getElementById('goals-section');
     const list = document.getElementById('goals-list');
+    if(!Object.keys(userGoals).length) { if(section) section.classList.add('hidden'); return; }
+    if(section) section.classList.remove('hidden');
+    if(list) list.innerHTML = '';
     
-    // 🛡️ PROTEÇÃO CONTRA O ERRO DE CACHE (NULL)
-    // Se o HTML antigo estiver carregado, esses elementos não existem.
-    // Retornamos silenciosamente para não quebrar o resto do app.
-    if (!section || !list) {
-        console.warn("Aviso: Elementos de Metas não encontrados no HTML (Cache antigo?).");
-        return; 
+    const expenses = {};
+    data.filter(t=>t.type !== 'receita' && t.type !== 'ENTRADA').forEach(t => expenses[t.category] = (expenses[t.category]||0) + Number(t.value));
+
+    for(const [cat, lim] of Object.entries(userGoals)) {
+        const spent = expenses[cat] || 0;
+        const pct = Math.min((spent/lim)*100, 100);
+        let color = pct>=100 ? 'bg-rose-500' : (pct>80 ? 'bg-amber-500' : 'bg-emerald-500');
+        const el = document.createElement('div');
+        el.innerHTML = `<div class="flex justify-between text-xs mb-1"><span class="font-bold text-white uppercase">${cat}</span><span class="text-slate-400">${spent.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} / ${lim.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span></div><div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden"><div class="${color} h-2.5 rounded-full transition-all duration-1000" style="width: ${pct}%"></div></div>`;
+        list.appendChild(el);
     }
-    
-    if (Object.keys(userGoals).length === 0) {
-        section.classList.add('hidden');
-        return;
-    }
-
-    section.classList.remove('hidden');
-    list.innerHTML = '';
-
-    const sortedGoals = Object.keys(userGoals).sort((a, b) => {
-        const perA = (currentExpenses[a] || 0) / userGoals[a];
-        const perB = (currentExpenses[b] || 0) / userGoals[b];
-        return perB - perA;
-    });
-
-    sortedGoals.forEach(cat => {
-        const limit = userGoals[cat];
-        const spent = currentExpenses[cat] || 0;
-        const percent = Math.min((spent / limit) * 100, 100);
-        
-        let color = 'bg-emerald-500';
-        if (percent > 75) color = 'bg-yellow-500';
-        if (percent >= 100) color = 'bg-rose-500';
-
-        const div = document.createElement('div');
-        div.innerHTML = `
-            <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
-                <span>${cat}</span>
-                <span>R$ ${spent.toLocaleString('pt-BR')} / <span class="text-slate-500">R$ ${limit.toLocaleString('pt-BR')}</span></span>
-            </div>
-            <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700/50">
-                <div class="${color} h-2.5 rounded-full transition-all duration-1000 shadow-lg" style="width: ${percent}%"></div>
-            </div>
-            ${percent >= 100 ? '<p class="text-[10px] text-rose-400 mt-1 font-bold animate-pulse">⚠️ Limite excedido!</p>' : ''}
-        `;
-        list.appendChild(div);
-    });
-}
-
-// =========================================================
-// RENDERIZAÇÃO GRÁFICOS
-// =========================================================
-
-function renderPersonBalance(canvasId, data, chartInstanceKey, colorTheme) {
-    const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
-    if (charts[chartInstanceKey]) charts[chartInstanceKey].destroy();
-    charts[chartInstanceKey] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Entradas', 'Saídas'],
-            datasets: [{
-                label: 'Total',
-                data: [data.entradas, data.saidas],
-                backgroundColor: ['#10b981', '#f43f5e'],
-                borderRadius: 6, barThickness: 40
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#fff' } } } }
-    });
-}
-
-function renderFlowChart(data) {
-    const ctx = document.getElementById('chartFlow');
-    if (!ctx) return;
-    const dailyMap = {};
-    data.forEach(d => {
-        const day = d.date.split('-')[2];
-        if(!dailyMap[day]) dailyMap[day] = 0;
-        dailyMap[day] += (d.type === 'receita' ? d.value : -d.value);
-    });
-    const labels = Object.keys(dailyMap).sort();
-    const values = labels.map(day => dailyMap[day]);
-    if (charts.flow) charts.flow.destroy();
-    charts.flow = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: labels, datasets: [{ label: 'Saldo', data: values, backgroundColor: (ctx) => ctx.raw >= 0 ? '#10b981' : '#f43f5e', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: (c) => c.tick.value===0?'#94a3b8':'#334155', lineWidth: (c)=>c.tick.value===0?2:1 } } } }
-    });
-}
-
-function renderDoughnutChart(canvasId, dataObj, chartKey, colors) {
-    const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
-    if (charts[chartKey]) charts[chartKey].destroy();
-    const sorted = Object.entries(dataObj).sort((a,b) => b[1] - a[1]);
-    charts[chartKey] = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels: sorted.map(x=>x[0]), datasets: [{ data: sorted.map(x=>x[1]), backgroundColor: colors, borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#cbd5e1', boxWidth: 10, font: { size: 10 } } } }, layout: { padding: 10 } }
-    });
-}
-
-function updateKPIs(receita, despesa) {
-    const fmt = val => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const elRec = document.getElementById('kpi-receitas');
-    const elDesp = document.getElementById('kpi-despesas');
-    const elSaldo = document.getElementById('kpi-saldo');
-
-    // Atualiza valores
-    if (elRec) elRec.innerText = fmt(receita);
-    if (elDesp) elDesp.innerText = fmt(despesa);
-    
-    if (elSaldo) {
-        const saldo = receita - despesa;
-        elSaldo.innerText = fmt(saldo);
-        
-        // LÓGICA DE COR + PRESERVAÇÃO DO BLUR
-        // Adicionamos 'blur-sensitive' aqui para garantir que o JS não remova o efeito
-        const colorClass = saldo >= 0 ? 'text-emerald-400' : 'text-rose-400';
-        elSaldo.className = `text-3xl font-bold mt-2 tracking-tight ${colorClass} blur-sensitive`;
-    }
-}
-
-function updateHealthBar(receita, despesa) {
-    const bar = document.getElementById('health-bar');
-    const text = document.getElementById('health-text');
-    if (!bar || !text) return; // Proteção
-
-    if(receita === 0) {
-        bar.style.width = despesa > 0 ? '100%' : '0%';
-        bar.className = 'h-full bg-slate-700';
-        text.innerText = 'Sem receitas';
-        return;
-    }
-    const percent = Math.min((despesa / receita) * 100, 100);
-    bar.style.width = `${percent}%`;
-    let colorClass = 'bg-emerald-500';
-    if(percent > 50) colorClass = 'bg-yellow-500';
-    if(percent > 80) colorClass = 'bg-orange-500';
-    if(percent > 95) colorClass = 'bg-rose-600';
-    bar.className = `h-full ${colorClass} transition-all duration-1000`;
-    text.innerText = `${percent.toFixed(1)}% Comprometido`;
 }

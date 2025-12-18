@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: js/modules/profile.js
- * DESCRIÇÃO: Gerencia Perfil, Grupos Familiares e Convites (VERSÃO SEGURA).
+ * DESCRIÇÃO: Gerencia Perfil, Grupos Familiares e Convites (VERSÃO FINAL).
  */
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, collection, 
@@ -16,25 +16,45 @@ export function initProfile(user, onContextChange) {
     currentUser = user;
     currentContextCallback = onContextChange;
 
-    // --- PROTEÇÃO CONTRA ERRO DE HTML ---
+    // Elementos HTML
     const elName = document.getElementById('profile-name');
     const elEmail = document.getElementById('profile-email');
     const elPic = document.getElementById('profile-pic');
     const btnInvite = document.getElementById('btn-send-invite');
+    const familySection = document.getElementById('family-section');
 
-    // Só preenche se o HTML existir (evita o erro "Cannot set properties of null")
+    // --- 1. LIBERA O ACESSO (Se tiver usuário) ---
+    if (user && familySection) {
+        familySection.classList.remove('hidden'); // MOSTRA A CAIXA DE FAMÍLIA
+    }
+
+    // --- 2. PREENCHE DADOS VISUAIS ---
     if (elName) elName.innerText = user.displayName || "Usuário";
-    if (elEmail) elEmail.innerText = user.email;
-    if (elPic) elPic.src = user.photoURL || "https://ui-avatars.com/api/?name=" + (user.displayName || "User");
+    
+    if (elEmail) {
+        elEmail.innerHTML = user.email;
+    }
 
-    // Listeners (só ativa se o HTML estiver carregado)
+    if (elPic) {
+        // Define a foto real (do Google) ou gera avatar com iniciais
+        const photoUrl = user.photoURL || "https://ui-avatars.com/api/?name=" + (user.displayName || "User") + "&background=10b981&color=fff";
+        elPic.src = photoUrl;
+        
+        // Estilização de "Usuário Ativo"
+        elPic.classList.remove('border-slate-600', 'p-2', 'bg-slate-800');
+        elPic.classList.add('border-emerald-500');
+    }
+
+    // --- 3. INICIA SISTEMAS ---
     setupInviteSystem();
     loadUserGroups();
-    
+
+    // Listener do botão de convite (Protegido)
     if (btnInvite) {
-        btnInvite.addEventListener('click', sendInvite);
-    } else {
-        console.warn("Aviso: Botão de convite não encontrado no HTML.");
+        // Remove listener anterior para não duplicar (cloneNode hack)
+        const newBtn = btnInvite.cloneNode(true);
+        btnInvite.parentNode.replaceChild(newBtn, btnInvite);
+        newBtn.addEventListener('click', sendInvite);
     }
 }
 
@@ -51,14 +71,14 @@ async function loadUserGroups() {
         const groups = data.groups || []; 
         renderContextSwitcher(groups);
     }, (error) => {
-        console.log("Perfil ainda não criado, usando padrão.");
+        // Se der erro (perfil não existe), renderiza só o pessoal
         renderContextSwitcher([]);
     });
 }
 
 function renderContextSwitcher(groupIds) {
     const container = document.getElementById('context-switcher');
-    if (!container) return; // Proteção
+    if (!container) return; 
 
     container.innerHTML = '';
 
@@ -92,8 +112,10 @@ function createContextButton(container, label, id, path) {
 
     btn.onclick = () => {
         localStorage.setItem('last_context_path', path);
+        // Força refresh visual rápido
         renderContextSwitcher([]); 
         loadUserGroups();
+        
         if (currentContextCallback) currentContextCallback(path);
         showToast(`Trocado para: ${label}`);
     };
@@ -136,10 +158,13 @@ async function sendInvite() {
 }
 
 async function ensureMyGroupExists() {
-    const groupRef = doc(db, "groups", currentUser.uid + "_family");
+    // ID do grupo baseado no UID do dono
+    const groupId = currentUser.uid + "_family";
+    const groupRef = doc(db, "groups", groupId);
     const groupSnap = await getDoc(groupRef);
 
     if (!groupSnap.exists()) {
+        // Cria o grupo
         await setDoc(groupRef, {
             name: "Família de " + (currentUser.displayName || "Usuário"),
             owner: currentUser.uid,
@@ -147,15 +172,17 @@ async function ensureMyGroupExists() {
             createdAt: serverTimestamp()
         });
         
+        // Atualiza perfil do usuário para incluir esse grupo
         await updateDoc(doc(db, "users_profile", currentUser.uid), {
-            groups: arrayUnion(currentUser.uid + "_family")
+            groups: arrayUnion(groupId)
         }).catch(async () => {
+            // Se perfil não existe, cria
             await setDoc(doc(db, "users_profile", currentUser.uid), {
-                groups: [currentUser.uid + "_family"]
+                groups: [groupId]
             });
         });
     }
-    return currentUser.uid + "_family";
+    return groupId;
 }
 
 function setupInviteSystem() {
@@ -165,7 +192,7 @@ function setupInviteSystem() {
         const list = document.getElementById('invites-list');
         const area = document.getElementById('pending-invites-area');
         
-        if (!list || !area) return; // Proteção
+        if (!list || !area) return;
 
         list.innerHTML = '';
 
@@ -209,7 +236,7 @@ async function acceptInvite(inviteId, groupId) {
         await updateDoc(doc(db, "invites", inviteId), { status: 'accepted' });
 
         showToast("Você entrou no grupo!");
-        loadUserGroups();
+        loadUserGroups(); // Atualiza a lista
     } catch (e) {
         console.error(e);
         showToast("Erro ao aceitar.", "error");

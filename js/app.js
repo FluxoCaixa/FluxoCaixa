@@ -1,16 +1,15 @@
 /**
  * ARQUIVO: js/app.js
- * DESCRIÇÃO: Orquestrador com suporte a Múltiplos Contextos (Pessoal/Família).
+ * DESCRIÇÃO: Orquestrador com Menu Mobile Corrigido.
  */
 import { initAuth } from './modules/auth.js';
 import { initDashboard } from './modules/dashboard.js';
 import { initCalendar } from './modules/calendar.js';
 import { initFinanceModule, stopFinanceListener } from './modules/finance.js';
-import { initProfile } from './modules/profile.js'; // Novo
+import { initProfile } from './modules/profile.js';
 import { db } from './config.js';
 import { collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// PWA Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
@@ -20,31 +19,19 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Inicializa UI Básica
     initDashboard();
     initCalendar();
     setupPrivacyToggle();
-    setupNavigation();
-
+    setupNavigation(); // Menu Mobile aqui dentro
+    
     // --- AUTENTICAÇÃO ---
     initAuth(
         (user) => {
             console.log("Usuário logado:", user.email);
-            
             if (db) {
-                // 1. Inicializa o Módulo de Perfil
-                // Passamos uma função de callback: quando o usuário trocar de conta lá no perfil,
-                // essa função aqui roda e troca o banco de dados.
-                initProfile(user, (newPath) => {
-                    changeDatabaseContext(newPath);
-                });
-
-                // 2. Define qual banco abrir inicialmente
+                initProfile(user, (newPath) => { changeDatabaseContext(newPath); });
                 const lastPath = localStorage.getItem('last_context_path');
-                const defaultPath = `users/${user.uid}/transactions`; // Padrão: Pessoal
-                
-                // Se tiver salvo, usa. Se não, usa o pessoal.
+                const defaultPath = `users/${user.uid}/transactions`;
                 changeDatabaseContext(lastPath || defaultPath);
             }
         },
@@ -55,32 +42,42 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 });
 
-/**
- * Função que reinicia o módulo financeiro com um novo caminho
- */
 function changeDatabaseContext(collectionPath) {
-    console.log(`🔌 Conectando contexto: ${collectionPath}`);
-    
-    // 1. Para os listeners antigos (Dashboard, Calendário, Tabela)
+    console.log(`🔌 Conectando: ${collectionPath}`);
     stopFinanceListener();
-
-    // 2. Conecta no novo caminho
     const colRef = collection(db, collectionPath);
     initFinanceModule(db, colRef);
 }
 
-// --- Funções Auxiliares de UI ---
+// --- FUNÇÕES DE UI (MENU E NAVEGAÇÃO) ---
 
 function setupNavigation() {
     const links = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page-content');
+    const sidebar = document.getElementById('sidebar');
+    const btnMobile = document.getElementById('btn-mobile-menu');
 
+    // Toggle do Menu Mobile (Botão Hambúrguer)
+    if(btnMobile && sidebar) {
+        btnMobile.addEventListener('click', () => {
+            // Alterna a altura entre 72px (fechado) e h-screen (aberto)
+            if (sidebar.classList.contains('h-[72px]')) {
+                sidebar.classList.remove('h-[72px]');
+                sidebar.classList.add('h-screen', 'absolute', 'top-0', 'left-0', 'w-full', 'bg-slate-950');
+            } else {
+                sidebar.classList.add('h-[72px]');
+                sidebar.classList.remove('h-screen', 'absolute', 'top-0', 'left-0', 'w-full', 'bg-slate-950');
+            }
+        });
+    }
+
+    // Clique nos Links
     links.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetPage = link.dataset.page;
             
-            // Troca de aba
+            // Troca de página
             pages.forEach(p => p.classList.add('hidden'));
             pages.forEach(p => p.classList.remove('active'));
             
@@ -90,8 +87,11 @@ function setupNavigation() {
                 pageEl.classList.add('active');
             }
 
-            // Fecha menu mobile se estiver aberto (opcional, bom pra UX)
-            // ...
+            // Fecha o menu mobile automaticamente ao clicar
+            if (window.innerWidth < 768 && sidebar) {
+                sidebar.classList.add('h-[72px]');
+                sidebar.classList.remove('h-screen', 'absolute', 'top-0', 'left-0', 'w-full', 'bg-slate-950');
+            }
         });
     });
 }
