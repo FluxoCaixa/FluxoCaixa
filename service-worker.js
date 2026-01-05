@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fluxocaixa-v5'; // Mudei para v5 para forçar atualização
+const CACHE_NAME = 'fluxocaixa-v6'; // Versão nova
 
 const ASSETS_TO_CACHE = [
   './',
@@ -20,17 +20,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log("Caching files...");
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .catch((err) => {
-        // Se cair aqui, algum arquivo da lista acima não existe!
-        console.error('ERRO CRÍTICO NO CACHE (O App não vai instalar):', err);
+        console.error('ERRO CRÍTICO: Falha ao baixar arquivos.', err);
       })
   );
 });
 
-// Ativação (Limpa caches antigos)
+// Ativação e Limpeza
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
@@ -41,15 +39,14 @@ self.addEventListener('activate', (event) => {
       }));
     })
   );
-  self.clients.claim(); // Força o controle imediato
+  self.clients.claim();
 });
 
-// Interceptação de Rede
+// Interceptação
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('firebase') || event.request.url.includes('googleapis')) {
     return; 
   }
-
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
