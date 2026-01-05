@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fluxocaixa-v6'; // Versão nova
+const CACHE_NAME = 'fluxocaixa-v7'; // Versão v7 para forçar atualização do ícone
 
 const ASSETS_TO_CACHE = [
   './',
@@ -11,7 +11,8 @@ const ASSETS_TO_CACHE = [
   './js/modules/auth.js',
   './js/modules/calendar.js',
   './js/modules/dashboard.js',
-  './js/modules/finance.js'
+  './js/modules/finance.js',
+  './js/modules/profile.js'
 ];
 
 // Instalação
@@ -22,12 +23,12 @@ self.addEventListener('install', (event) => {
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .catch((err) => {
-        console.error('ERRO CRÍTICO: Falha ao baixar arquivos.', err);
+        console.error('Erro no cache:', err);
       })
   );
 });
 
-// Ativação e Limpeza
+// Ativação (Limpa caches antigos)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
@@ -41,7 +42,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Interceptação
+// Interceptação de Rede
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('firebase') || event.request.url.includes('googleapis')) {
     return; 
