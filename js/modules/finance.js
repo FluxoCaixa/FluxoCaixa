@@ -185,51 +185,26 @@ export function stopFinanceListener() {
     if (unsubscribeRecurring) { unsubscribeRecurring(); unsubscribeRecurring = null; }
 }
 
-// --- FILTROS DE TABELA ---
 function renderTable() {
     const tbody = document.getElementById('transactions-tbody');
     const checkAll = document.getElementById('check-all-rows');
     
-    // Pega valores diretamente do DOM na hora da renderização
+    // Pega valores diretamente do DOM
     const fDay = document.getElementById('filter-day')?.value.trim();
     const fDesc = document.getElementById('filter-desc')?.value.toLowerCase();
     const fCat = document.getElementById('filter-cat')?.value.toLowerCase();
+    const fResp = document.getElementById('filter-resp')?.value.toLowerCase(); // Filtro Responsável
 
     if (!tbody) return;
     tbody.innerHTML = '';
     
+    // Aplica os filtros
     let filteredList = currentTransactions.filter(t => {
         const matchDay = fDay ? t.date.split('-')[2].includes(fDay) : true;
         const matchDesc = fDesc ? t.description.toLowerCase().includes(fDesc) : true;
         const matchCat = fCat ? t.category.toLowerCase().includes(fCat) : true;
-        return matchDay && matchDesc && matchCat;
-    });
-}
-
-function clearTableFilters() {
-    ['filter-day', 'filter-desc', 'filter-cat', 'filter-resp'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.value = '';
-    });
-}
-
-function renderTable() {
-    const tbody = document.getElementById('transactions-tbody');
-    const checkAll = document.getElementById('check-all-rows');
-    
-    // Pega valores diretamente do DOM na hora da renderização
-    const fDay = document.getElementById('filter-day')?.value.trim();
-    const fDesc = document.getElementById('filter-desc')?.value.toLowerCase();
-    const fCat = document.getElementById('filter-cat')?.value.toLowerCase();
-
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    let filteredList = currentTransactions.filter(t => {
-        const matchDay = fDay ? t.date.split('-')[2].includes(fDay) : true;
-        const matchDesc = fDesc ? t.description.toLowerCase().includes(fDesc) : true;
-        const matchCat = fCat ? t.category.toLowerCase().includes(fCat) : true;
-        return matchDay && matchDesc && matchCat;
+        const matchResp = fResp ? (t.responsibility || '').toLowerCase().includes(fResp) : true;
+        return matchDay && matchDesc && matchCat && matchResp;
     });
 
     // Ordenação
@@ -244,7 +219,7 @@ function renderTable() {
         return currentSortOrder === 'asc' ? comparison : comparison * -1;
     });
 
-    // Ícones de Ordenação
+    // Atualiza ícones de ordenação no cabeçalho
     document.querySelectorAll('.sort-header .sort-icon').forEach(icon => {
         icon.innerText = '⇅'; 
         icon.classList.remove('text-emerald-400');
@@ -255,16 +230,19 @@ function renderTable() {
         activeHeader.classList.add('text-emerald-400');
     }
 
+    // Mensagem se não houver dados
     if (filteredList.length === 0) {
+        const colSpan = 8; // Ajustado para cobrir todas as colunas
         if (currentTransactions.length > 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">Nenhum resultado para os filtros. <button id="btn-reset-empty" class="text-emerald-400 hover:underline ml-1">Limpar Filtros</button></td></tr>';
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-12 text-center text-slate-500 italic">Nenhum resultado para os filtros. <button id="btn-reset-empty" class="text-emerald-400 hover:underline ml-1">Limpar Filtros</button></td></tr>`;
             document.getElementById('btn-reset-empty')?.addEventListener('click', () => document.getElementById('btn-clear-filters').click());
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">Nenhum lançamento neste período.<br><span class="text-xs">Verifique o filtro de mês ou crie um novo.</span></td></tr>';
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-12 text-center text-slate-500 italic">Nenhum lançamento neste período.<br><span class="text-xs">Verifique o filtro de mês ou crie um novo.</span></td></tr>`;
         }
         return;
     }
 
+    // Renderiza as linhas
     filteredList.forEach(t => {
         const val = parseFloat(t.value);
         const color = t.type === 'receita' ? 'text-emerald-400' : 'text-rose-400';
@@ -295,8 +273,12 @@ function renderTable() {
             </td>
         `;
 
+        // Ativa botões de ação (Edição e Exclusão)
         tr.querySelector('.btn-delete').onclick = () => deleteTransaction(t.id);
-        tr.querySelector('.btn-edit').onclick = () => openEditModal(t);
+        if(typeof openEditModal === 'function') {
+            tr.querySelector('.btn-edit').onclick = () => openEditModal(t);
+        }
+        
         tbody.appendChild(tr);
     });
 
