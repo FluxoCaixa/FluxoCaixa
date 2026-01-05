@@ -1,6 +1,5 @@
-const CACHE_NAME = 'fluxocaixa-v4'; // Mudei para v4 para garantir que ele pegue o novo arquivo de perfil
+const CACHE_NAME = 'fluxocaixa-v5'; // Mudei para v5 para forçar atualização
 
-// LISTA SEGURA: Adicionei o profile.js que criamos hoje
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,7 +12,7 @@ const ASSETS_TO_CACHE = [
   './js/modules/calendar.js',
   './js/modules/dashboard.js',
   './js/modules/finance.js',
-  './js/modules/profile.js' // <--- NOVO ARQUIVO IMPORTANTE
+  './js/modules/profile.js' 
 ];
 
 // Instalação
@@ -21,10 +20,12 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
+        console.log("Caching files...");
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .catch((err) => {
-        console.error('Erro ao fazer cache dos arquivos:', err);
+        // Se cair aqui, algum arquivo da lista acima não existe!
+        console.error('ERRO CRÍTICO NO CACHE (O App não vai instalar):', err);
       })
   );
 });
@@ -40,11 +41,11 @@ self.addEventListener('activate', (event) => {
       }));
     })
   );
+  self.clients.claim(); // Força o controle imediato
 });
 
 // Interceptação de Rede
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições para o Firebase/Google (CDNs) para não dar erro de CORS no cache
   if (event.request.url.includes('firebase') || event.request.url.includes('googleapis')) {
     return; 
   }

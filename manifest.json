@@ -1,11 +1,15 @@
 {
   "name": "FluxoCaixa Pro",
   "short_name": "FluxoCaixa",
+  "description": "Gestão Financeira Pessoal e Familiar",
+  "id": "./",
   "start_url": "./index.html",
   "display": "standalone",
   "scope": "./",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "categories": ["finance", "productivity"],
   "icons": [
     {
       "src": "icon-192.png",
