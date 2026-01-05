@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: js/modules/finance.js
- * DESCRIÇÃO: Módulo Financeiro (Correção de Leitura de Filtros + Todas as Funções)
+ * DESCRIÇÃO: Módulo Financeiro Completo (Filtros, Edição, Coluna Responsável)
  */
 import { 
     onSnapshot, addDoc, deleteDoc, updateDoc, doc, writeBatch, collection, getDocs,
@@ -20,7 +20,7 @@ let currentSortCol = 'date';
 let currentSortOrder = 'desc';
 let activeTab = null; 
 
-// Utilitário para pegar valor atualizado do DOM (corrige bug do cloneNode)
+// Utilitário para pegar valor atualizado do DOM
 const getVal = (id) => {
     const el = document.getElementById(id);
     return el ? el.value : null;
@@ -32,7 +32,6 @@ export function initFinanceModule(db, collectionRef) {
     currentRecurringRef = collection(collectionRef.parent, "recurring");
 
     // 1. INICIALIZAÇÃO DOS INPUTS
-    // Precisamos pegar os elementos apenas para definir o valor inicial se vazio
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     
@@ -41,14 +40,11 @@ export function initFinanceModule(db, collectionRef) {
         if (el && !el.value) el.value = currentMonth;
     });
 
-    // --- FUNÇÕES DE CARGA (Lendo sempre o elemento vivo do DOM) ---
-    
+    // --- FUNÇÕES DE CARGA ---
     const loadFromDashboard = () => {
         const s = getVal('dash-month-filter') || currentMonth;
         const e = getVal('dash-month-end-filter');
-        
         if (e && e < s) return showToast("Mês final inválido.", "warn");
-        
         console.log(`🔄 Contexto: Dashboard (Filtro: ${s} até ${e || 'fim do mês'})`);
         setupMonthListener(s, e);
     };
@@ -56,16 +52,11 @@ export function initFinanceModule(db, collectionRef) {
     const loadFromFinance = () => {
         const s = getVal('finance-month-filter') || currentMonth;
         const e = getVal('finance-month-end-filter');
-        
         if (e && e < s) return showToast("Mês final inválido.", "warn");
-        
         console.log(`🔄 Contexto: Lançamentos (Filtro: ${s} até ${e || 'fim do mês'})`);
         setupMonthListener(s, e);
     };
 
-    // --- REGENERAR LISTENERS DE INPUT (Sem perder a referência) ---
-    // Clonamos para limpar eventos antigos, mas lemos pelo ID na função loadFrom...
-    
     const attachListener = (id, callback) => {
         const el = document.getElementById(id);
         if (el) {
@@ -80,7 +71,7 @@ export function initFinanceModule(db, collectionRef) {
     attachListener('finance-month-filter', loadFromFinance);
     attachListener('finance-month-end-filter', loadFromFinance);
 
-    // --- DETECÇÃO DE ABA (OBSERVER) ---
+    // --- DETECÇÃO DE ABA ---
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -100,7 +91,7 @@ export function initFinanceModule(db, collectionRef) {
     const pages = document.querySelectorAll('.page-content');
     pages.forEach(page => observer.observe(page, { attributes: true }));
 
-    // 2. LISTENER DE RECORRÊNCIA (SEMPRE ATIVO)
+    // 2. LISTENER DE RECORRÊNCIA
     if (unsubscribeRecurring) unsubscribeRecurring();
     unsubscribeRecurring = onSnapshot(currentRecurringRef, (snapshot) => {
         const items = [];
@@ -114,7 +105,7 @@ export function initFinanceModule(db, collectionRef) {
     setupExcelHandlers(db);
     setupRecurringHandlers(db);
     setupSortListeners(); 
-    setupFilterListeners();
+    setupFilterListeners(); // <--- O ERRO ESTAVA AQUI (Função chamada mas não existia)
 
     // CARGA INICIAL
     if (document.getElementById('lancamentos')?.classList.contains('active')) {
@@ -128,10 +119,8 @@ export function initFinanceModule(db, collectionRef) {
 
 // --- BUSCA NO BANCO ---
 function setupMonthListener(startMonth, endMonth) {
-    // 0. Limpa filtros da tabela para não esconder dados
-    clearTableFilters();
+    clearTableFilters(); // <--- OUTRO ERRO (Função chamada mas não existia)
 
-    // 1. Limpa listener anterior do Firebase
     if (currentMonthUnsubscribe) { 
         currentMonthUnsubscribe(); 
         currentMonthUnsubscribe = null; 
@@ -139,12 +128,9 @@ function setupMonthListener(startMonth, endMonth) {
 
     if (!currentCollectionRef || !startMonth) return;
 
-    // 2. Calcula Datas
     const finalMonth = endMonth || startMonth;
     const startDate = `${startMonth}-01`;
-    
     const [y, m] = finalMonth.split('-').map(Number);
-    // m é base 1. Date(y, m, 0) pega o dia 0 do mês seguinte -> Último dia do mês m.
     const lastDay = new Date(y, m, 0).getDate();
     const endDate = `${finalMonth}-${lastDay}`;
 
@@ -185,6 +171,43 @@ export function stopFinanceListener() {
     if (unsubscribeRecurring) { unsubscribeRecurring(); unsubscribeRecurring = null; }
 }
 
+// --- FILTROS DE TABELA (CORRIGIDO) ---
+function setupFilterListeners() {
+    ['filter-day', 'filter-desc', 'filter-cat', 'filter-resp'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            const clone = el.cloneNode(true);
+            el.parentNode.replaceChild(clone, el);
+            clone.addEventListener('input', renderTable);
+        }
+    });
+
+    document.getElementById('btn-clean-filter-day')?.addEventListener('click', () => {
+        const el = document.getElementById('filter-day'); if(el) el.value = ''; renderTable();
+    });
+    document.getElementById('btn-clean-filter-desc')?.addEventListener('click', () => {
+        const el = document.getElementById('filter-desc'); if(el) el.value = ''; renderTable();
+    });
+    document.getElementById('btn-clean-filter-cat')?.addEventListener('click', () => {
+        const el = document.getElementById('filter-cat'); if(el) el.value = ''; renderTable();
+    });
+    document.getElementById('btn-clean-filter-resp')?.addEventListener('click', () => {
+        const el = document.getElementById('filter-resp'); if(el) el.value = ''; renderTable();
+    });
+    document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
+        clearTableFilters();
+        renderTable();
+    });
+}
+
+function clearTableFilters() {
+    ['filter-day', 'filter-desc', 'filter-cat', 'filter-resp'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+}
+
+// --- RENDERIZAÇÃO DA TABELA (COM EDICÃO E RESPONSÁVEL) ---
 function renderTable() {
     const tbody = document.getElementById('transactions-tbody');
     const checkAll = document.getElementById('check-all-rows');
@@ -193,12 +216,11 @@ function renderTable() {
     const fDay = document.getElementById('filter-day')?.value.trim();
     const fDesc = document.getElementById('filter-desc')?.value.toLowerCase();
     const fCat = document.getElementById('filter-cat')?.value.toLowerCase();
-    const fResp = document.getElementById('filter-resp')?.value.toLowerCase(); // Filtro Responsável
+    const fResp = document.getElementById('filter-resp')?.value.toLowerCase();
 
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // Aplica os filtros
     let filteredList = currentTransactions.filter(t => {
         const matchDay = fDay ? t.date.split('-')[2].includes(fDay) : true;
         const matchDesc = fDesc ? t.description.toLowerCase().includes(fDesc) : true;
@@ -219,7 +241,7 @@ function renderTable() {
         return currentSortOrder === 'asc' ? comparison : comparison * -1;
     });
 
-    // Atualiza ícones de ordenação no cabeçalho
+    // Ícones
     document.querySelectorAll('.sort-header .sort-icon').forEach(icon => {
         icon.innerText = '⇅'; 
         icon.classList.remove('text-emerald-400');
@@ -230,19 +252,16 @@ function renderTable() {
         activeHeader.classList.add('text-emerald-400');
     }
 
-    // Mensagem se não houver dados
     if (filteredList.length === 0) {
-        const colSpan = 8; // Ajustado para cobrir todas as colunas
         if (currentTransactions.length > 0) {
-            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-12 text-center text-slate-500 italic">Nenhum resultado para os filtros. <button id="btn-reset-empty" class="text-emerald-400 hover:underline ml-1">Limpar Filtros</button></td></tr>`;
+            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-slate-500 italic">Nenhum resultado para os filtros. <button id="btn-reset-empty" class="text-emerald-400 hover:underline ml-1">Limpar Filtros</button></td></tr>';
             document.getElementById('btn-reset-empty')?.addEventListener('click', () => document.getElementById('btn-clear-filters').click());
         } else {
-            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-12 text-center text-slate-500 italic">Nenhum lançamento neste período.<br><span class="text-xs">Verifique o filtro de mês ou crie um novo.</span></td></tr>`;
+            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-slate-500 italic">Nenhum lançamento neste período.<br><span class="text-xs">Verifique o filtro de mês ou crie um novo.</span></td></tr>';
         }
         return;
     }
 
-    // Renderiza as linhas
     filteredList.forEach(t => {
         const val = parseFloat(t.value);
         const color = t.type === 'receita' ? 'text-emerald-400' : 'text-rose-400';
@@ -273,12 +292,8 @@ function renderTable() {
             </td>
         `;
 
-        // Ativa botões de ação (Edição e Exclusão)
         tr.querySelector('.btn-delete').onclick = () => deleteTransaction(t.id);
-        if(typeof openEditModal === 'function') {
-            tr.querySelector('.btn-edit').onclick = () => openEditModal(t);
-        }
-        
+        tr.querySelector('.btn-edit').onclick = () => openEditModal(t);
         tbody.appendChild(tr);
     });
 
@@ -294,6 +309,28 @@ function renderTable() {
 }
 
 // --- FUNÇÕES AUXILIARES ---
+function openEditModal(t) {
+    const modal = document.getElementById('modal-transaction');
+    const form = document.getElementById('form-transaction');
+    if (!modal || !form) return;
+
+    document.getElementById('form-desc').value = t.description;
+    document.getElementById('form-valor').value = t.value;
+    document.getElementById('form-data').value = t.date;
+    document.getElementById('form-categoria').value = t.category;
+    document.getElementById('form-resp').value = t.responsibility || '';
+    document.getElementById('form-status').checked = t.status;
+    
+    const radios = document.getElementsByName('tipo');
+    radios.forEach(r => { if (r.value === t.type) r.checked = true; });
+
+    form.dataset.editingId = t.id;
+    const btnSubmit = form.querySelector('button[type="submit"]');
+    if(btnSubmit) btnSubmit.innerText = "Atualizar Lançamento";
+
+    modal.classList.remove('hidden');
+}
+
 function renderRecurringTable(items) {
     const tbody = document.getElementById('recurring-list-body');
     if(!tbody) return; tbody.innerHTML = '';
@@ -454,36 +491,6 @@ function setupRecurringHandlers(db) {
     }
 }
 
-// Função auxiliar para abrir modal de edição
-function openEditModal(t) {
-    const modal = document.getElementById('modal-transaction');
-    const form = document.getElementById('form-transaction');
-    if (!modal || !form) return;
-
-    // Preenche os campos com os dados existentes
-    document.getElementById('form-desc').value = t.description;
-    document.getElementById('form-valor').value = t.value;
-    document.getElementById('form-data').value = t.date;
-    document.getElementById('form-categoria').value = t.category;
-    document.getElementById('form-resp').value = t.responsibility || '';
-    document.getElementById('form-status').checked = t.status;
-    
-    // Marca o rádio (Receita ou Despesa) correto
-    const radios = document.getElementsByName('tipo');
-    radios.forEach(r => {
-        if (r.value === t.type) r.checked = true;
-    });
-
-    // Salva o ID no formulário para saber que é edição
-    form.dataset.editingId = t.id;
-    
-    // Muda texto do botão para indicar atualização
-    const btnSubmit = form.querySelector('button[type="submit"]');
-    if(btnSubmit) btnSubmit.innerText = "Atualizar Lançamento";
-
-    modal.classList.remove('hidden');
-}
-
 function setupFormListeners() {
     const btnNew = document.getElementById('btn-new-transaction');
     const modal = document.getElementById('modal-transaction');
@@ -492,12 +499,10 @@ function setupFormListeners() {
 
     if (btnNew) btnNew.onclick = () => {
         form.reset();
-        delete form.dataset.editingId; // Limpa ID de edição (Modo Criação)
+        delete form.dataset.editingId; // Limpa ID de edição
         document.getElementById('form-data').valueAsDate = new Date();
-        
         const btnSubmit = form.querySelector('button[type="submit"]');
         if(btnSubmit) btnSubmit.innerText = "Salvar Lançamento";
-        
         modal.classList.remove('hidden');
     };
 
@@ -525,11 +530,9 @@ function setupFormListeners() {
 
             try {
                 if (form.dataset.editingId) {
-                    // MODO EDIÇÃO: Atualiza o documento existente
                     await updateDoc(doc(currentCollectionRef, form.dataset.editingId), payload);
                     showToast("Lançamento atualizado!");
                 } else {
-                    // MODO CRIAÇÃO: Cria novo documento
                     payload.createdAt = new Date().toISOString();
                     await addDoc(currentCollectionRef, payload);
                     showToast("Lançamento salvo!");
