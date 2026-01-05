@@ -65,10 +65,11 @@ function setupNavigation() {
             // Alterna a altura entre 72px (fechado) e h-screen (aberto)
             if (sidebar.classList.contains('h-[72px]')) {
                 sidebar.classList.remove('h-[72px]');
-                sidebar.classList.add('h-screen', 'absolute', 'top-0', 'left-0', 'w-full', 'bg-slate-950');
+                // Usa 'fixed' e 'z-50' para garantir que fique por cima e não role junto com a página
+                sidebar.classList.add('h-screen', 'fixed', 'top-0', 'left-0', 'w-full', 'bg-slate-950', 'z-50');
             } else {
                 sidebar.classList.add('h-[72px]');
-                sidebar.classList.remove('h-screen', 'absolute', 'top-0', 'left-0', 'w-full', 'bg-slate-950');
+                sidebar.classList.remove('h-screen', 'fixed', 'top-0', 'left-0', 'w-full', 'bg-slate-950', 'z-50');
             }
         });
     }
