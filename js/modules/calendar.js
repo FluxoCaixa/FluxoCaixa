@@ -146,14 +146,14 @@ function renderCalendar() {
             </div>
 
             <div class="flex flex-col justify-center flex-1 space-y-0.5 px-1">
-                ${ent > 0 ? `<div class="flex justify-between items-center text-[10px] text-emerald-400 font-medium"><span>+${formatShort(ent)}</span></div>` : ''}
-                ${sai > 0 ? `<div class="flex justify-between items-center text-[10px] text-rose-400 font-medium"><span>-${formatShort(sai)}</span></div>` : ''}
+                ${ent > 0 ? `<div class="flex justify-between items-center text-[10px] text-emerald-400 font-medium"><span class="blur-sensitive">+${formatShort(ent)}</span></div>` : ''}
+                ${sai > 0 ? `<div class="flex justify-between items-center text-[10px] text-rose-400 font-medium"><span class="blur-sensitive">-${formatShort(sai)}</span></div>` : ''}
             </div>
 
             <div class="mt-2 pt-1 border-t border-slate-700/50 text-right hidden md:block">
                 <div class="flex justify-between items-center ${saldoBg} px-2 py-1 rounded-lg border ${saldoBorder}">
                     <span class="text-[9px] uppercase font-bold opacity-70 tracking-wider">Cx</span>
-                    <span class="text-xs font-bold font-mono">${formatShort(saldoAcumulado)}</span>
+                    <span class="text-xs font-bold font-mono blur-sensitive">${formatShort(saldoAcumulado)}</span>
                 </div>
             </div>
         `;
@@ -228,7 +228,7 @@ function openDayDetails(dateString, transactions, ent, sai, saldoAcumulado) {
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-mono font-bold ${color} text-sm">
+                        <div class="font-mono font-bold ${color} text-sm blur-sensitive">
                             ${sign} ${parseFloat(t.value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
                         </div>
                     </div>
