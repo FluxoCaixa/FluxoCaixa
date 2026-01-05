@@ -11,8 +11,7 @@ const ASSETS_TO_CACHE = [
   './js/modules/auth.js',
   './js/modules/calendar.js',
   './js/modules/dashboard.js',
-  './js/modules/finance.js',
-  './js/modules/profile.js' 
+  './js/modules/finance.js'
 ];
 
 // Instalação
