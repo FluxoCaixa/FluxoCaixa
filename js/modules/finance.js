@@ -186,34 +186,28 @@ export function stopFinanceListener() {
 }
 
 // --- FILTROS DE TABELA ---
-function setupFilterListeners() {
-    ['filter-day', 'filter-desc', 'filter-cat'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) {
-            const clone = el.cloneNode(true);
-            el.parentNode.replaceChild(clone, el);
-            clone.addEventListener('input', renderTable);
-        }
-    });
+function renderTable() {
+    const tbody = document.getElementById('transactions-tbody');
+    const checkAll = document.getElementById('check-all-rows');
+    
+    // Pega valores diretamente do DOM na hora da renderização
+    const fDay = document.getElementById('filter-day')?.value.trim();
+    const fDesc = document.getElementById('filter-desc')?.value.toLowerCase();
+    const fCat = document.getElementById('filter-cat')?.value.toLowerCase();
 
-    document.getElementById('btn-clean-filter-day')?.addEventListener('click', () => {
-        const el = document.getElementById('filter-day'); if(el) el.value = ''; renderTable();
-    });
-    document.getElementById('btn-clean-filter-desc')?.addEventListener('click', () => {
-        const el = document.getElementById('filter-desc'); if(el) el.value = ''; renderTable();
-    });
-    document.getElementById('btn-clean-filter-cat')?.addEventListener('click', () => {
-        const el = document.getElementById('filter-cat'); if(el) el.value = ''; renderTable();
-    });
-
-    document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
-        clearTableFilters();
-        renderTable();
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    let filteredList = currentTransactions.filter(t => {
+        const matchDay = fDay ? t.date.split('-')[2].includes(fDay) : true;
+        const matchDesc = fDesc ? t.description.toLowerCase().includes(fDesc) : true;
+        const matchCat = fCat ? t.category.toLowerCase().includes(fCat) : true;
+        return matchDay && matchDesc && matchCat;
     });
 }
 
 function clearTableFilters() {
-    ['filter-day', 'filter-desc', 'filter-cat'].forEach(id => {
+    ['filter-day', 'filter-desc', 'filter-cat', 'filter-resp'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = '';
     });
@@ -286,6 +280,7 @@ function renderTable() {
             <td class="px-6 py-3 font-mono text-xs text-slate-400">${new Date(t.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
             <td class="px-6 py-3 font-medium text-white">${t.description}</td>
             <td class="px-6 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 border border-slate-700 text-slate-400">${t.category}</span></td>
+            <td class="px-6 py-3 text-slate-400 text-xs uppercase font-medium">${t.responsibility || '-'}</td>
             <td class="px-6 py-3 text-right font-bold font-mono ${color} blur-sensitive">${sign} R$ ${val.toFixed(2)}</td>
             <td class="px-6 py-3 text-center">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${statusClass}">${statusText}</span>
